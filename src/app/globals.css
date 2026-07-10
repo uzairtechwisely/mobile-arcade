@@ -1,26 +1,58 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f9fc;
+  --foreground: #070707;
+  --surface: #ffffff;
+  --muted: #3f3f46;
+  --border: #d8dae2;
+  --brand: #006afc;
+  --brand-dark: #0050bf;
+  --brand-light: #3385fd;
+  --brand-2: #3c2a68;
+  --ring: #006afc;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light: var(--brand-light);
+  --color-brand-2: var(--brand-2);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-body);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  --font-display: var(--font-head);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #070707;
+    --foreground: #ffffff;
+    --surface: #0f1115;
+    --muted: #c2c2c2;
+    --border: #2a2f3a;
+    --brand: #006afc;
+    --brand-dark: #0050bf;
+    --brand-light: #3385fd;
+    --brand-2: #9a7bd6;
+    --ring: #3385fd;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
 }
