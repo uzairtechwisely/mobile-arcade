@@ -4,11 +4,15 @@ import { Container } from "@/components/ui/Container";
 import { ECOMMERCE_URL } from "@/lib/public-config";
 
 const footerLinks = [
-  { href: "/service-finder", label: "Find your nearest branch" },
-  { href: "/repair", label: "Repairs" },
-  { href: "/trade", label: "Trade-in & sell" },
+  { href: "/service-finder", label: "Find your nearest branch", external: false },
+  { href: "/repair", label: "Repairs", external: false },
+  { href: "/trade", label: "Trade-in & sell", external: false },
   { href: ECOMMERCE_URL, label: "Shop online", external: true },
-  { href: "/campaigns/sell-broken-phone", label: "Nationwide collection" },
+  {
+    href: "/campaigns/sell-broken-phone",
+    label: "Nationwide collection",
+    external: false,
+  },
 ] as const;
 
 export function SiteFooter() {

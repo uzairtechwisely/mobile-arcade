@@ -4,12 +4,12 @@ import { Container } from "@/components/ui/Container";
 import { ECOMMERCE_URL } from "@/lib/public-config";
 
 const nav = [
-  { href: "/repair", label: "Repair" },
-  { href: "/trade", label: "Trade" },
-  { href: "/customise", label: "Customise" },
+  { href: "/repair", label: "Repair", external: false },
+  { href: "/trade", label: "Trade", external: false },
+  { href: "/customise", label: "Customise", external: false },
   { href: ECOMMERCE_URL, label: "Shop", external: true },
-  { href: "/locations", label: "Locations" },
-  { href: "/service-finder", label: "Store finder" },
+  { href: "/locations", label: "Locations", external: false },
+  { href: "/service-finder", label: "Store finder", external: false },
 ] as const;
 
 export function SiteHeader() {
