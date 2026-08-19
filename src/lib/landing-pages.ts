@@ -85,7 +85,10 @@ export const landingPages: LandingPageConfig[] = [
   },
 ];
 
-export const landingPageBySlug = Object.fromEntries(
-  landingPages.map((p) => [p.slug, p]),
-) as Record<string, LandingPageConfig>;
+export function getLandingPage(slug: string) {
+  return landingPages.find((p) => p.slug === slug) ?? null;
+}
 
+export function getLandingSlugs() {
+  return landingPages.map((p) => p.slug);
+}

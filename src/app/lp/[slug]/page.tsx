@@ -1,29 +1,30 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LandingPage } from "@/components/landing/LandingPage";
-import { landingPageBySlug } from "@/lib/landing-pages";
+import { getLandingPage, getLandingSlugs } from "@/lib/landing-pages";
 
 export function generateStaticParams() {
-  return Object.keys(landingPageBySlug).map((slug) => ({ slug }));
+  return getLandingSlugs().map((slug) => ({ slug }));
 }
 
-export function generateMetadata({
+export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
-}): Metadata {
-  const cfg = landingPageBySlug[params.slug];
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const cfg = getLandingPage(slug);
   if (!cfg) return {};
   return { title: cfg.title, description: cfg.heroSubtitle };
 }
 
-export default function LandingPageRoute({
+export default async function LandingPageRoute({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const cfg = landingPageBySlug[params.slug];
+  const { slug } = await params;
+  const cfg = getLandingPage(slug);
   if (!cfg) notFound();
   return <LandingPage cfg={cfg} />;
 }
-

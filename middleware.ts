@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { landingPageBySlug } from "@/lib/landing-pages";
+import { getLandingSlugs } from "@/lib/landing-pages";
 
 export const config = {
   matcher: ["/((?!_next|favicon.ico).*)"],
@@ -38,7 +38,7 @@ export function middleware(req: NextRequest) {
   if (!host) return NextResponse.next();
   const sub = getSubdomain(host);
   if (!sub) return NextResponse.next();
-  if (!landingPageBySlug[sub]) return NextResponse.next();
+  if (!getLandingSlugs().includes(sub)) return NextResponse.next();
 
   const url = req.nextUrl.clone();
   if (url.pathname.startsWith("/lp/")) return NextResponse.next();
