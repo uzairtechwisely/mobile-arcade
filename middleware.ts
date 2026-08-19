@@ -5,12 +5,30 @@ export const config = {
   matcher: ["/((?!_next|favicon.ico).*)"],
 };
 
+const ROOT_DOMAIN = "mobilearcadeltd.co.uk";
+
 function getSubdomain(host: string) {
   const clean = host.split(":")[0].toLowerCase();
   if (clean.includes("localhost")) return null;
-  const parts = clean.split(".").filter(Boolean);
-  if (parts.length < 3) return null;
-  const sub = parts[0];
+
+  const allow =
+    clean === ROOT_DOMAIN ||
+    clean.endsWith(`.${ROOT_DOMAIN}`) ||
+    clean.endsWith(".vercel.app");
+  if (!allow) return null;
+
+  if (clean === ROOT_DOMAIN) return null;
+  if (clean.endsWith(".vercel.app")) {
+    const parts = clean.split(".").filter(Boolean);
+    if (parts.length < 3) return null;
+    const sub = parts[0];
+    if (sub === "www") return null;
+    return sub;
+  }
+
+  const suffix = `.${ROOT_DOMAIN}`;
+  const sub = clean.slice(0, -suffix.length);
+  if (!sub || sub.includes(".")) return null;
   if (sub === "www") return null;
   return sub;
 }
@@ -27,4 +45,3 @@ export function middleware(req: NextRequest) {
   url.pathname = `/lp/${sub}`;
   return NextResponse.rewrite(url);
 }
-
