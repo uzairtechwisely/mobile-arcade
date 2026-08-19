@@ -433,7 +433,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                 rel="noreferrer"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-white text-muted shadow-[0_10px_22px_rgba(0,0,0,0.06)] hover:text-foreground"
               >
-                f
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                  <path d="M13.5 21v-7h2.3l.4-2.7h-2.7V9.6c0-.8.2-1.4 1.4-1.4h1.5V5.8c-.3 0-1.2-.1-2.3-.1-2.2 0-3.7 1.4-3.7 4v1.6H8v2.7h2.6v7h2.9Z" />
+                </svg>
               </a>
               <a
                 href="https://instagram.com"
@@ -441,7 +443,24 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                 rel="noreferrer"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-white text-muted shadow-[0_10px_22px_rgba(0,0,0,0.06)] hover:text-foreground"
               >
-                ⌁
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+                  <path
+                    d="M7.2 3.8h9.6A3.4 3.4 0 0 1 20.2 7.2v9.6a3.4 3.4 0 0 1-3.4 3.4H7.2a3.4 3.4 0 0 1-3.4-3.4V7.2a3.4 3.4 0 0 1 3.4-3.4Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path
+                    d="M12 16.3a4.3 4.3 0 1 0 0-8.6 4.3 4.3 0 0 0 0 8.6Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path
+                    d="M17.2 6.9h0.01"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </a>
               <a
                 href="https://tiktok.com"
@@ -449,7 +468,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                 rel="noreferrer"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-white text-muted shadow-[0_10px_22px_rgba(0,0,0,0.06)] hover:text-foreground"
               >
-                ♪
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                  <path d="M14.7 3.5c.4 2.8 2.1 4.9 5 5.2v2.7c-2-.1-3.6-.8-5-2v6.4c0 3-2.3 5.3-5.3 5.3-2.3 0-4.3-1.5-5-3.6-.9-2.8 1-5.9 4-6.4 1-.2 1.9-.1 2.8.2v2.9c-.6-.3-1.3-.5-2-.4-1.2.2-2.1 1.1-2.2 2.3-.2 1.5 1 2.8 2.5 2.8 1.4 0 2.5-1.1 2.5-2.5V3.5h2.7Z" />
+                </svg>
               </a>
             </div>
           </div>
@@ -503,4 +524,3 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     </div>
   );
 }
-
