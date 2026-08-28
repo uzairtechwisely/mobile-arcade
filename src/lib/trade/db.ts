@@ -3,7 +3,15 @@ import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { getDeviceCatalogSource } from "@/lib/trade/catalog-source";
 
-const localDatabasePath = path.join(process.cwd(), ".data", "mobile-arcade.db");
+function getLocalDatabasePath() {
+  if (process.env.VERCEL) {
+    return path.join("/tmp", "mobile-arcade.db");
+  }
+
+  return path.join(process.cwd(), ".data", "mobile-arcade.db");
+}
+
+const localDatabasePath = getLocalDatabasePath();
 const databaseUrl = process.env.DATABASE_URL ?? `file:${localDatabasePath}`;
 const authToken = process.env.DATABASE_AUTH_TOKEN;
 
