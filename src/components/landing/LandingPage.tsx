@@ -111,16 +111,6 @@ const deviceTypes: Array<{
   },
 ];
 
-const headerLinks = [
-  "Services",
-  "Pricing",
-  "Stores",
-  "FAQs",
-  "Track repair",
-  "Products",
-  "Trade In",
-] as const;
-
 const postageServices = [
   "Royal Mail",
   "Evri",
@@ -136,6 +126,18 @@ const carrierPortalLinks: Record<string, string> = {
   DPD: "https://www.dpdlocal-online.co.uk/",
   UPS: "https://www.ups.com/gb/en/business-solutions.page",
   ParcelForce: "https://www.parcelforce.com/business-services",
+};
+
+const sampleModelHints: Record<DeviceCategory, string[]> = {
+  phone: [
+    "Apple iPhone 16 Pro",
+    "Apple iPhone 15",
+    "Samsung Galaxy S24 Ultra",
+    "Samsung Galaxy S23",
+  ],
+  laptop: ["Apple MacBook Air M2", "Apple MacBook Pro 14", "Dell XPS 13"],
+  tablet: ["Apple iPad Air 5", "Apple iPad 10th Gen", "Samsung Galaxy Tab S9"],
+  gaming_device: ["Sony PlayStation 5", "Microsoft Xbox Series X", "Nintendo Switch OLED"],
 };
 
 function Confetti() {
@@ -263,6 +265,10 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (modelQuery.trim().length === 0) {
+      return;
+    }
+
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
@@ -441,47 +447,16 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     <div className="relative bg-[#f2f3f5]">
       <style>{`@keyframes confetti{0%{transform:translateY(-10px) rotate(0deg);opacity:0}20%{opacity:1}100%{transform:translateY(260px) rotate(260deg);opacity:0}}`}</style>
 
-      <header className="border-b border-black/5 bg-white/95 backdrop-blur">
-        <Container className="flex h-16 items-center justify-between gap-6">
+      <header className="border-b border-black/5 bg-white/98">
+        <Container className="flex items-center justify-center py-5 sm:py-6">
           <Image
             src="/brand/logo-horizontal.png"
             alt="Mobile Arcade"
-            width={142}
-            height={32}
-            className="h-6 w-auto"
+            width={220}
+            height={48}
+            className="h-8 w-auto sm:h-9"
             priority
           />
-          <nav className="hidden items-center gap-7 text-xs font-medium text-muted lg:flex">
-            {headerLinks.map((item) => (
-              <a
-                key={item}
-                href={item === "FAQs" ? "#faqs" : "#hero-flow"}
-                className={item === "Trade In" ? "text-brand" : "hover:text-foreground"}
-              >
-                {item}
-              </a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="hidden rounded-full px-3 py-2 text-sm text-muted hover:bg-background lg:inline-flex"
-            >
-              ⌕
-            </button>
-            <button
-              type="button"
-              className="hidden rounded-full px-3 py-2 text-sm text-muted hover:bg-background lg:inline-flex"
-            >
-              ○
-            </button>
-            <a
-              href="#hero-flow"
-              className="inline-flex items-center justify-center rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(0,106,252,0.18)] transition hover:bg-brand-dark"
-            >
-              Book a repair
-            </a>
-          </div>
         </Container>
       </header>
 
@@ -595,8 +570,23 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                         </button>
                       </div>
 
-                      <div className="mx-auto mt-3 max-w-3xl rounded-[28px] border border-black/6 bg-white text-left shadow-[0_8px_20px_rgba(0,0,0,0.04)]">
-                        {suggestions.length > 0 ? (
+                      <div className="mx-auto mt-2 max-w-3xl text-left">
+                        <div className="px-2 text-xs leading-5 text-muted">
+                          Try{" "}
+                          {sampleModelHints[deviceCategory].slice(0, -1).join(", ")}{" "}
+                          or{" "}
+                          {
+                            sampleModelHints[deviceCategory][
+                              sampleModelHints[deviceCategory].length - 1
+                            ]
+                          }
+                          .
+                        </div>
+                      </div>
+
+                      {modelQuery.trim().length > 0 ? (
+                        <div className="mx-auto mt-3 max-w-3xl rounded-[28px] border border-black/6 bg-white text-left shadow-[0_8px_20px_rgba(0,0,0,0.04)]">
+                          {suggestions.length > 0 ? (
                           suggestions.map((item) => {
                             const active = selectedModel?.id === item.id;
                             return (
@@ -624,10 +614,11 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                           <div className="px-5 py-3 text-sm text-muted">
                             {searchLoading
                               ? "Looking up models..."
-                              : "Select a category and start typing to pick your exact model."}
+                              : "No matching sample devices found yet. Try one of the example models above."}
                           </div>
                         )}
-                      </div>
+                        </div>
+                      ) : null}
                     </form>
                   </div>
                 </SlideFrame>
