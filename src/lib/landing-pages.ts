@@ -41,7 +41,7 @@ export const landingPages: LandingPageConfig[] = [
       },
       {
         title: "Mail it to Mobile Arcade",
-        body: "We’ll arrange free collection or postage based on your location.",
+        body: "Send it with your preferred postage service and we add that postage amount back after receipt.",
         imageUrl: imageUrl(
           "Ultra realistic photo of a small parcel box with protective bubble wrap and shipping label on a clean desk, soft lighting, high detail, premium retail style",
           "landscape_4_3",
@@ -71,7 +71,7 @@ export const landingPages: LandingPageConfig[] = [
       },
       {
         q: "Can I sell a damaged phone?",
-        a: "Yes. Choose the closest matching condition and upload at least one photo so we can review it properly.",
+        a: "Yes. Choose the closest matching condition. The final offer is still confirmed after inspection when the phone arrives.",
       },
       {
         q: "How and when will I be paid?",
