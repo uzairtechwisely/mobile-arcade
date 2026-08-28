@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLandingSlugs } from "@/lib/landing-pages";
 
 export const config = {
-  matcher: ["/((?!_next|favicon.ico).*)"],
+  matcher: ["/((?!api|_next|favicon.ico).*)"],
 };
 
 const ROOT_DOMAIN = "mobilearcadeltd.co.uk";
@@ -36,6 +36,7 @@ function getSubdomain(host: string) {
 export function middleware(req: NextRequest) {
   const host = req.headers.get("host");
   if (!host) return NextResponse.next();
+  if (req.nextUrl.pathname.startsWith("/api/")) return NextResponse.next();
   const sub = getSubdomain(host);
   if (!sub) return NextResponse.next();
   if (!getLandingSlugs().includes(sub)) return NextResponse.next();

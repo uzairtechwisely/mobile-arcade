@@ -77,6 +77,21 @@ async function createTables(db: Client) {
     )
   `);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS support_requests (
+      id TEXT PRIMARY KEY,
+      device_category TEXT NOT NULL,
+      model_query TEXT,
+      requested_amount_gbp INTEGER,
+      device_condition TEXT,
+      customer_name TEXT NOT NULL,
+      customer_email TEXT NOT NULL,
+      customer_mobile TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+
   await db.execute(
     "CREATE INDEX IF NOT EXISTS idx_device_models_category ON device_models(category)",
   );

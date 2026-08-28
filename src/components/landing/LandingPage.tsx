@@ -316,19 +316,125 @@ function SmallLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function Modal({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <button
+        type="button"
+        aria-label="Close modal"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+      />
+      <div className="relative z-10 w-full max-w-xl rounded-[32px] bg-white p-6 shadow-[0_28px_90px_rgba(0,0,0,0.22)] sm:p-8">
+        <div className="flex items-start justify-between gap-4">
+          <h3 className="text-2xl font-semibold tracking-tight text-foreground">
+            {title}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full px-3 py-2 text-sm font-medium text-muted transition hover:bg-background hover:text-foreground"
+          >
+            Close
+          </button>
+        </div>
+        <div className="mt-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+type SupportReason = "typing_error" | "unsupported_device" | "system_down";
+type SupportModalState = {
+  title: string;
+  message: string;
+  reason: SupportReason;
+  showLeadForm: boolean;
+};
+
+async function parseJsonResponse<T>(response: Response): Promise<T & { error?: string }> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const text = await response.text();
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error("SYSTEM_NON_JSON_RESPONSE");
+  }
+
+  if (!text) {
+    return {} as T & { error?: string };
+  }
+
+  try {
+    return JSON.parse(text) as T & { error?: string };
+  } catch {
+    throw new Error("SYSTEM_INVALID_JSON_RESPONSE");
+  }
+}
+
 async function postJson<T>(url: string, body: object): Promise<T> {
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = (await response.json()) as T & { error?: string };
+  const data = await parseJsonResponse<T>(response);
 
   if (!response.ok) {
     throw new Error(data.error ?? "Something went wrong.");
   }
 
   return data;
+}
+
+function resolveSupportModal(error: unknown): SupportModalState {
+  const message = error instanceof Error ? error.message : "Something went wrong.";
+
+  if (
+    message.includes("Selected model was not found") ||
+    message.includes("No matching devices found")
+  ) {
+    return {
+      title: "We do not yet buy this device",
+      message:
+        "We will likely add it soon. Leave your name, email and phone and we will call you with an accurate quote when we can support it.",
+      reason: "unsupported_device",
+      showLeadForm: true,
+    };
+  }
+
+  if (
+    message.includes("SYSTEM_") ||
+    message.includes("Unexpected token") ||
+    message.includes("Failed to fetch")
+  ) {
+    return {
+      title: "Our quoting system is temporarily unavailable",
+      message:
+        "You can still get up to £800. Leave your name, email and phone and we will call you with an accurate quote while the system is down.",
+      reason: "system_down",
+      showLeadForm: true,
+    };
+  }
+
+  return {
+    title: "Please select a phone or keep typing",
+    message:
+      "There was an error matching what you typed. Please choose a device from the dropdown list or keep typing to filter the results.",
+    reason: "typing_error",
+    showLeadForm: false,
+  };
 }
 
 export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
@@ -360,7 +466,13 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [trade, setTrade] = useState<TradeConfirmation | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [supportModal, setSupportModal] = useState<SupportModalState | null>(null);
+  const [supportName, setSupportName] = useState("");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportMobile, setSupportMobile] = useState("");
+  const [supportSubmitLoading, setSupportSubmitLoading] = useState(false);
+  const [supportSuccessMessage, setSupportSuccessMessage] = useState<string | null>(null);
+  const [supportFormError, setSupportFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!dropdownOpen) {
@@ -378,10 +490,10 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
             signal: controller.signal,
           },
         );
-        const data = (await response.json()) as {
+        const data = await parseJsonResponse<{
           models?: DeviceSuggestion[];
           error?: string;
-        };
+        }>(response);
 
         if (!response.ok) {
           throw new Error(data.error ?? "Unable to load devices.");
@@ -390,7 +502,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
         setSuggestions(data.models ?? []);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          setSuggestions([]);
+          setSuggestions(featuredDevicePicks[deviceCategory]);
         }
       } finally {
         setSearchLoading(false);
@@ -401,7 +513,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       controller.abort();
       window.clearTimeout(timer);
     };
-    }, [deviceCategory, dropdownOpen, modelQuery]);
+  }, [deviceCategory, dropdownOpen, modelQuery]);
 
   const resolvedPostageService =
     postageService === "Other" ? customPostageService : postageService;
@@ -417,7 +529,12 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
   function moveToStep(step: number) {
     setCurrentStep(step);
-    setErrorMessage(null);
+  }
+
+  function openSupportModal(error: unknown) {
+    setSupportSuccessMessage(null);
+    setSupportFormError(null);
+    setSupportModal(resolveSupportModal(error));
   }
 
   function resetJourney() {
@@ -441,14 +558,16 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setPostageTrackingReference("");
     setEstimatedPostageCost("8");
     setTermsAccepted(false);
-    setErrorMessage(null);
+    setSupportModal(null);
+    setSupportSuccessMessage(null);
+    setSupportFormError(null);
   }
 
   function handleCategoryChange(nextCategory: DeviceCategory) {
     setDeviceCategory(nextCategory);
     setSelectedModel(null);
     setModelQuery("");
-    setSuggestions([]);
+    setSuggestions(featuredDevicePicks[nextCategory]);
     setDropdownOpen(false);
   }
 
@@ -461,17 +580,39 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
   async function handleQuoteSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setErrorMessage(null);
     setTrade(null);
 
-    if (!selectedModel) {
-      setErrorMessage("Please choose a model from the suggestions first.");
+    const normalizedQuery = modelQuery.trim().toLowerCase();
+    const mergedCandidates = [...suggestions, ...featuredDevicePicks[deviceCategory]].filter(
+      (item, index, list) => list.findIndex((entry) => entry.id === item.id) === index,
+    );
+    const matchedModel =
+      selectedModel ??
+      mergedCandidates.find((item) => {
+        const fullLabel = item.label.toLowerCase();
+        const modelOnly = item.model.toLowerCase();
+        return (
+          fullLabel === normalizedQuery ||
+          modelOnly === normalizedQuery ||
+          `${item.brand} ${item.model}`.toLowerCase() === normalizedQuery
+        );
+      });
+
+    if (!matchedModel) {
+      openSupportModal(
+        new Error(
+          normalizedQuery.length > 0
+            ? "No matching devices found."
+            : "Please choose a model from the suggestions first.",
+        ),
+      );
       return;
     }
+    setSelectedModel(matchedModel);
 
     const requested = Number(requestedAmount);
     if (!Number.isFinite(requested) || requested <= 0) {
-      setErrorMessage("Enter how much you want in GBP.");
+      openSupportModal(new Error("Enter how much you want in GBP."));
       return;
     }
 
@@ -479,16 +620,14 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       setQuoteLoading(true);
       const data = await postJson<{ quote: QuoteSummary }>("/api/trade/quote", {
         category: deviceCategory,
-        deviceModelId: selectedModel.id,
+        deviceModelId: matchedModel.id,
         condition,
         requestedAmountGbp: requested,
       });
       setQuote(data.quote);
       moveToStep(1);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to get your quote.",
-      );
+      openSupportModal(error);
     } finally {
       setQuoteLoading(false);
     }
@@ -499,7 +638,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
     try {
       setRewardLoading(true);
-      setErrorMessage(null);
       const data = await postJson<{ quote: QuoteSummary }>("/api/trade/reward", {
         quoteId: quote.id,
         action,
@@ -507,9 +645,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       setQuote(data.quote);
       moveToStep(3);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to continue the bonus step.",
-      );
+      openSupportModal(error);
     } finally {
       setRewardLoading(false);
     }
@@ -521,7 +657,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
     try {
       setConfirmLoading(true);
-      setErrorMessage(null);
       const data = await postJson<{ trade: TradeConfirmation }>(
         "/api/trade/confirm",
         {
@@ -541,17 +676,110 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       );
       setTrade(data.trade);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to confirm your trade.",
-      );
+      openSupportModal(error);
     } finally {
       setConfirmLoading(false);
+    }
+  }
+
+  async function handleSupportSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supportModal) return;
+
+    try {
+      setSupportSubmitLoading(true);
+      setSupportSuccessMessage(null);
+      setSupportFormError(null);
+      await postJson<{ supportRequest: { id: string } }>("/api/trade/support-request", {
+        deviceCategory,
+        modelQuery,
+        requestedAmountGbp: requestedAmount ? Number(requestedAmount) : undefined,
+        condition,
+        customerName: supportName,
+        customerEmail: supportEmail,
+        customerMobile: supportMobile,
+        reason: supportModal.reason,
+      });
+      setSupportSuccessMessage(
+        "Thanks. We have saved your details and a team member will contact you with an accurate quote.",
+      );
+    } catch {
+      setSupportSuccessMessage(null);
+      setSupportFormError("We could not save your details just now. Please try again.");
+    } finally {
+      setSupportSubmitLoading(false);
     }
   }
 
   return (
     <div className="relative bg-[#f2f3f5]">
       <style>{`@keyframes confetti{0%{transform:translateY(-10px) rotate(0deg);opacity:0}20%{opacity:1}100%{transform:translateY(260px) rotate(260deg);opacity:0}}`}</style>
+
+      <Modal
+        open={Boolean(supportModal)}
+        onClose={() => setSupportModal(null)}
+        title={supportModal?.title ?? "Help with your quote"}
+      >
+        <p className="text-sm leading-6 text-muted">{supportModal?.message}</p>
+        {supportModal?.showLeadForm ? (
+          <form onSubmit={handleSupportSubmit} className="mt-5 space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-xs font-semibold text-muted">Full name</label>
+                <input
+                  value={supportName}
+                  onChange={(event) => setSupportName(event.target.value)}
+                  className="mt-2 h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm font-medium outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted">Phone</label>
+                <input
+                  value={supportMobile}
+                  onChange={(event) => setSupportMobile(event.target.value)}
+                  className="mt-2 h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm font-medium outline-none"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-muted">Email</label>
+              <input
+                type="email"
+                value={supportEmail}
+                onChange={(event) => setSupportEmail(event.target.value)}
+                className="mt-2 h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm font-medium outline-none"
+              />
+            </div>
+            {supportSuccessMessage ? (
+              <div className="rounded-2xl bg-[rgba(232,242,255,0.85)] px-4 py-3 text-sm text-brand">
+                {supportSuccessMessage}
+              </div>
+            ) : null}
+            {supportFormError ? (
+              <div className="rounded-2xl bg-[rgba(254,242,242,1)] px-4 py-3 text-sm text-[rgba(153,27,27,1)]">
+                {supportFormError}
+              </div>
+            ) : null}
+            <button
+              type="submit"
+              disabled={supportSubmitLoading}
+              className="inline-flex h-12 items-center justify-center rounded-full bg-brand px-6 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-65"
+            >
+              {supportSubmitLoading ? "Saving..." : "Leave my details"}
+            </button>
+          </form>
+        ) : (
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={() => setSupportModal(null)}
+              className="inline-flex h-12 items-center justify-center rounded-full bg-brand px-6 text-sm font-semibold text-white transition hover:bg-brand-dark"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+      </Modal>
 
       <header className="border-b border-black/5 bg-white/98">
         <Container className="flex items-center justify-center py-6 sm:py-7">
@@ -575,12 +803,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               <ProgressPill label="Step 3" active={currentStep === 2} complete={currentStep > 2} />
               <ProgressPill label="Step 4" active={currentStep === 3} complete={Boolean(trade)} />
             </div>
-
-            {errorMessage ? (
-              <div className="mb-4 rounded-2xl border border-[rgba(220,38,38,0.16)] bg-[rgba(254,242,242,1)] px-4 py-3 text-sm text-[rgba(153,27,27,1)]">
-                {errorMessage}
-              </div>
-            ) : null}
 
             <div className="overflow-hidden">
               <div
@@ -651,7 +873,10 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                               setSelectedModel(null);
                               setDropdownOpen(true);
                             }}
-                            onFocus={() => setDropdownOpen(true)}
+                            onFocus={() => {
+                              setSuggestions(featuredDevicePicks[deviceCategory]);
+                              setDropdownOpen(true);
+                            }}
                             onBlur={() => {
                               window.setTimeout(() => {
                                 setDropdownOpen(false);
@@ -689,7 +914,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                                   <div className="px-5 py-3 text-sm text-muted">
                                     {searchLoading
                                       ? "Looking up devices..."
-                                      : "No matching devices found."}
+                                      : "We do not yet buy this device. Please try another model."}
                                   </div>
                                 )}
                               </div>

@@ -59,6 +59,22 @@ const confirmTradeSchema = z.object({
   termsAccepted: z.literal(true),
 });
 
+const supportRequestSchema = z.object({
+  deviceCategory: z.enum(categoryValues),
+  modelQuery: z.string().trim().max(120).optional().default(""),
+  requestedAmountGbp: z.coerce.number().int().min(0).max(5000).optional(),
+  condition: z.enum(conditionValues).optional(),
+  customerName: z.string().trim().min(2),
+  customerEmail: z.email(),
+  customerMobile: z
+    .string()
+    .trim()
+    .min(10)
+    .max(20)
+    .regex(/^[0-9+\s()\-]+$/),
+  reason: z.enum(["typing_error", "unsupported_device", "system_down"]),
+});
+
 type DeviceModelRow = {
   id: string;
   category: DeviceCategory;
@@ -489,4 +505,44 @@ export async function confirmTrade(input: unknown) {
       reimbursement,
     reward: quote.reward,
   } satisfies TradeConfirmation;
+}
+
+export async function createSupportRequest(input: unknown) {
+  const parsed = supportRequestSchema.parse(input);
+  const db = await getTradeDb();
+  const id = randomUUID();
+
+  await db.execute({
+    sql: `
+      INSERT INTO support_requests (
+        id,
+        device_category,
+        model_query,
+        requested_amount_gbp,
+        device_condition,
+        customer_name,
+        customer_email,
+        customer_mobile,
+        reason,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    args: [
+      id,
+      parsed.deviceCategory,
+      parsed.modelQuery || null,
+      parsed.requestedAmountGbp ?? null,
+      parsed.condition ?? null,
+      parsed.customerName,
+      parsed.customerEmail,
+      parsed.customerMobile,
+      parsed.reason,
+      new Date().toISOString(),
+    ],
+  });
+
+  return {
+    id,
+    reason: parsed.reason,
+  };
 }
