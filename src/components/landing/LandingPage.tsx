@@ -128,16 +128,113 @@ const carrierPortalLinks: Record<string, string> = {
   ParcelForce: "https://www.parcelforce.com/business-services",
 };
 
-const sampleModelHints: Record<DeviceCategory, string[]> = {
+const featuredDevicePicks: Record<DeviceCategory, DeviceSuggestion[]> = {
   phone: [
-    "Apple iPhone 16 Pro",
-    "Apple iPhone 15",
-    "Samsung Galaxy S24 Ultra",
-    "Samsung Galaxy S23",
+    {
+      id: "apple-iphone-16-pro",
+      brand: "Apple",
+      model: "iPhone 16 Pro",
+      category: "phone",
+      label: "Apple iPhone 16 Pro",
+    },
+    {
+      id: "apple-iphone-15-pro-max",
+      brand: "Apple",
+      model: "iPhone 15 Pro Max",
+      category: "phone",
+      label: "Apple iPhone 15 Pro Max",
+    },
+    {
+      id: "apple-iphone-15",
+      brand: "Apple",
+      model: "iPhone 15",
+      category: "phone",
+      label: "Apple iPhone 15",
+    },
+    {
+      id: "samsung-galaxy-s24-ultra",
+      brand: "Samsung",
+      model: "Galaxy S24 Ultra",
+      category: "phone",
+      label: "Samsung Galaxy S24 Ultra",
+    },
+    {
+      id: "samsung-galaxy-z-flip-6",
+      brand: "Samsung",
+      model: "Galaxy Z Flip 6",
+      category: "phone",
+      label: "Samsung Galaxy Z Flip 6",
+    },
   ],
-  laptop: ["Apple MacBook Air M2", "Apple MacBook Pro 14", "Dell XPS 13"],
-  tablet: ["Apple iPad Air 5", "Apple iPad 10th Gen", "Samsung Galaxy Tab S9"],
-  gaming_device: ["Sony PlayStation 5", "Microsoft Xbox Series X", "Nintendo Switch OLED"],
+  laptop: [
+    {
+      id: "apple-macbook-air-m2",
+      brand: "Apple",
+      model: "MacBook Air M2",
+      category: "laptop",
+      label: "Apple MacBook Air M2",
+    },
+    {
+      id: "apple-macbook-pro-14",
+      brand: "Apple",
+      model: "MacBook Pro 14",
+      category: "laptop",
+      label: "Apple MacBook Pro 14",
+    },
+    {
+      id: "dell-xps-13",
+      brand: "Dell",
+      model: "XPS 13",
+      category: "laptop",
+      label: "Dell XPS 13",
+    },
+  ],
+  tablet: [
+    {
+      id: "apple-ipad-air-5",
+      brand: "Apple",
+      model: "iPad Air 5",
+      category: "tablet",
+      label: "Apple iPad Air 5",
+    },
+    {
+      id: "apple-ipad-10",
+      brand: "Apple",
+      model: "iPad 10th Gen",
+      category: "tablet",
+      label: "Apple iPad 10th Gen",
+    },
+    {
+      id: "samsung-tab-s9",
+      brand: "Samsung",
+      model: "Galaxy Tab S9",
+      category: "tablet",
+      label: "Samsung Galaxy Tab S9",
+    },
+  ],
+  gaming_device: [
+    {
+      id: "sony-ps5",
+      brand: "Sony",
+      model: "PlayStation 5",
+      category: "gaming_device",
+      label: "Sony PlayStation 5",
+    },
+    {
+      id: "microsoft-xbox-series-x",
+      brand: "Microsoft",
+      model: "Xbox Series X",
+      category: "gaming_device",
+      label: "Microsoft Xbox Series X",
+    },
+    {
+      id: "nintendo-switch-oled",
+      brand: "Nintendo",
+      model: "Switch OLED",
+      category: "gaming_device",
+      label: "Nintendo Switch OLED",
+    },
+  ],
 };
 
 function Confetti() {
@@ -239,6 +336,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [modelQuery, setModelQuery] = useState("");
   const [selectedModel, setSelectedModel] = useState<DeviceSuggestion | null>(null);
   const [suggestions, setSuggestions] = useState<DeviceSuggestion[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [condition, setCondition] = useState<(typeof deviceConditions)[number]["key"]>(
     "good",
@@ -265,7 +363,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (modelQuery.trim().length === 0) {
+    if (!dropdownOpen) {
       return;
     }
 
@@ -303,7 +401,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [deviceCategory, modelQuery]);
+    }, [deviceCategory, dropdownOpen, modelQuery]);
 
   const resolvedPostageService =
     postageService === "Other" ? customPostageService : postageService;
@@ -351,6 +449,14 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setSelectedModel(null);
     setModelQuery("");
     setSuggestions([]);
+    setDropdownOpen(false);
+  }
+
+  function handleSuggestionSelect(item: DeviceSuggestion) {
+    setSelectedModel(item);
+    setModelQuery(item.label);
+    setSuggestions([]);
+    setDropdownOpen(false);
   }
 
   async function handleQuoteSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -448,13 +554,13 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       <style>{`@keyframes confetti{0%{transform:translateY(-10px) rotate(0deg);opacity:0}20%{opacity:1}100%{transform:translateY(260px) rotate(260deg);opacity:0}}`}</style>
 
       <header className="border-b border-black/5 bg-white/98">
-        <Container className="flex items-center justify-center py-5 sm:py-6">
+        <Container className="flex items-center justify-center py-6 sm:py-7">
           <Image
             src="/brand/logo-horizontal.png"
             alt="Mobile Arcade"
-            width={220}
-            height={48}
-            className="h-8 w-auto sm:h-9"
+            width={320}
+            height={68}
+            className="h-10 w-auto sm:h-12"
             priority
           />
         </Container>
@@ -519,17 +625,76 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                         })}
                       </div>
 
+                      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                        {featuredDevicePicks[deviceCategory].map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => handleSuggestionSelect(item)}
+                            className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-foreground transition hover:border-brand hover:text-brand"
+                          >
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(232,242,255,0.85)] text-brand">
+                              {deviceTypes.find((type) => type.key === deviceCategory)?.icon}
+                            </span>
+                            <span>{item.model}</span>
+                          </button>
+                        ))}
+                      </div>
+
                       <div className="mt-6 grid gap-3 lg:grid-cols-[1.2fr_0.7fr_0.55fr]">
-                        <div className="rounded-full border border-black/20 bg-white px-5 py-1">
+                        <div className="relative">
+                          <div className="rounded-full border border-black/20 bg-white px-5 py-1">
                           <input
                             value={modelQuery}
                             onChange={(event) => {
                               setModelQuery(event.target.value);
                               setSelectedModel(null);
+                              setDropdownOpen(true);
+                            }}
+                            onFocus={() => setDropdownOpen(true)}
+                            onBlur={() => {
+                              window.setTimeout(() => {
+                                setDropdownOpen(false);
+                              }, 120);
                             }}
                             placeholder={`Search your ${getCategoryLabel(deviceCategory).toLowerCase()}`}
                             className="h-12 w-full bg-transparent text-sm font-medium outline-none"
                           />
+                          </div>
+                          {dropdownOpen ? (
+                            <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-[24px] border border-black/8 bg-white text-left shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
+                              <div className="max-h-72 overflow-y-auto py-2">
+                                {suggestions.length > 0 ? (
+                                  suggestions.map((item) => {
+                                    const active = selectedModel?.id === item.id;
+                                    return (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onMouseDown={() => handleSuggestionSelect(item)}
+                                        className={`flex w-full items-center justify-between px-5 py-3 text-left text-sm transition ${
+                                          active
+                                            ? "bg-[rgba(232,242,255,0.85)] font-semibold text-brand"
+                                            : "hover:bg-background"
+                                        }`}
+                                      >
+                                        <span>{item.label}</span>
+                                        <span className="text-xs text-muted">
+                                          {getCategoryLabel(item.category)}
+                                        </span>
+                                      </button>
+                                    );
+                                  })
+                                ) : (
+                                  <div className="px-5 py-3 text-sm text-muted">
+                                    {searchLoading
+                                      ? "Looking up devices..."
+                                      : "No matching devices found."}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                         <div className="grid grid-cols-2 gap-2 rounded-[28px] bg-white/80 p-2 ring-1 ring-inset ring-black/5">
                           <select
@@ -569,56 +734,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                           {quoteLoading ? "Finding..." : "Find my phone value"}
                         </button>
                       </div>
-
-                      <div className="mx-auto mt-2 max-w-3xl text-left">
-                        <div className="px-2 text-xs leading-5 text-muted">
-                          Try{" "}
-                          {sampleModelHints[deviceCategory].slice(0, -1).join(", ")}{" "}
-                          or{" "}
-                          {
-                            sampleModelHints[deviceCategory][
-                              sampleModelHints[deviceCategory].length - 1
-                            ]
-                          }
-                          .
-                        </div>
-                      </div>
-
-                      {modelQuery.trim().length > 0 ? (
-                        <div className="mx-auto mt-3 max-w-3xl rounded-[28px] border border-black/6 bg-white text-left shadow-[0_8px_20px_rgba(0,0,0,0.04)]">
-                          {suggestions.length > 0 ? (
-                          suggestions.map((item) => {
-                            const active = selectedModel?.id === item.id;
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedModel(item);
-                                  setModelQuery(item.label);
-                                }}
-                                className={`flex w-full items-center justify-between px-5 py-3 text-left text-sm transition ${
-                                  active
-                                    ? "bg-[rgba(232,242,255,0.85)] font-semibold text-brand"
-                                    : "hover:bg-background"
-                                }`}
-                              >
-                                <span>{item.label}</span>
-                                <span className="text-xs text-muted">
-                                  {getCategoryLabel(item.category)}
-                                </span>
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <div className="px-5 py-3 text-sm text-muted">
-                            {searchLoading
-                              ? "Looking up models..."
-                              : "No matching sample devices found yet. Try one of the example models above."}
-                          </div>
-                        )}
-                        </div>
-                      ) : null}
                     </form>
                   </div>
                 </SlideFrame>

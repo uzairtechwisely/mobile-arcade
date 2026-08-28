@@ -251,7 +251,7 @@ export async function searchDeviceModels(
       WHERE category = ?
         AND (? = '' OR search_text LIKE ?)
       ORDER BY brand ASC, model ASC
-      LIMIT 8
+      LIMIT 50
     `,
     args: [category, trimmed, like],
   });
