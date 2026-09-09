@@ -237,6 +237,32 @@ const featuredDevicePicks: Record<DeviceCategory, DeviceSuggestion[]> = {
   ],
 };
 
+const storageOptions = ["128GB", "256GB", "512GB", "1TB"] as const;
+const conditionDescriptions: Record<
+  (typeof deviceConditions)[number]["key"],
+  string
+> = {
+  brand_new: "Unused, in original packaging with all accessories.",
+  excellent: "Fully working with very light signs of use.",
+  good: "Fully working with visible everyday wear.",
+  fair: "Working but with heavier cosmetic wear.",
+  cracked_working: "Screen or body damage, but the device still functions.",
+  cracked_not_working: "Device does not power on or has major functional issues.",
+};
+
+function getGuidePriceRange(systemMaximumGbp: number) {
+  const upper = Math.max(5, Math.ceil(systemMaximumGbp / 5) * 5);
+  const lower = Math.max(5, Math.floor((upper * 0.7) / 5) * 5);
+  return `${formatCurrency(lower)}–${formatCurrency(upper)}`;
+}
+
+function getLandingPrompt(category: DeviceCategory) {
+  if (category === "phone") return "Which phone do you have?";
+  if (category === "laptop") return "Which laptop do you have?";
+  if (category === "tablet") return "Which tablet or iPad do you have?";
+  return "Which gaming device do you have?";
+}
+
 function Confetti() {
   const pieces = useMemo(() => Array.from({ length: 28 }, (_, i) => i), []);
   return (
@@ -356,6 +382,361 @@ function Modal({
   );
 }
 
+function LogoOnlyHeader() {
+  return (
+    <header className="ma-header">
+      <Image
+        src="/brand/logo-horizontal.png"
+        alt="Mobile Arcade"
+        width={139}
+        height={34}
+        className="ma-header-logo"
+        priority
+      />
+    </header>
+  );
+}
+
+function HeroIntro({ cfg }: { cfg: LandingPageConfig }) {
+  return (
+    <section className="landing-hero">
+      <div className="landing-hero-inner">
+        <h1>{cfg.heroTitle}</h1>
+        <p>{cfg.heroSubtitle}</p>
+      </div>
+    </section>
+  );
+}
+
+function DeviceCategorySelector({
+  selectedCategory,
+  modelQuery,
+  suggestions,
+  selectedModel,
+  dropdownOpen,
+  searchLoading,
+  onSelect,
+  onQueryChange,
+  onFocusSearch,
+  onBlurSearch,
+  onSubmitSearch,
+  onSelectSuggestion,
+}: {
+  selectedCategory: DeviceCategory;
+  modelQuery: string;
+  suggestions: DeviceSuggestion[];
+  selectedModel: DeviceSuggestion | null;
+  dropdownOpen: boolean;
+  searchLoading: boolean;
+  onSelect: (category: DeviceCategory) => void;
+  onQueryChange: (value: string) => void;
+  onFocusSearch: () => void;
+  onBlurSearch: () => void;
+  onSubmitSearch: () => void;
+  onSelectSuggestion: (item: DeviceSuggestion) => void;
+}) {
+  return (
+    <section className="device-category-section">
+      <h2 className="device-category-title">What device would you like to trade in?</h2>
+      <div className="device-category-list">
+        {deviceTypes.map((item) => {
+          const active = selectedCategory === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => onSelect(item.key)}
+              className={`device-category ${active ? "is-selected text-[#006AFC]" : "text-[#1D1D1F]"}`}
+            >
+              <span className="flex h-12 items-center justify-center">{item.icon}</span>
+              <span className="device-category-label">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="device-category-helper">{getLandingPrompt(selectedCategory)}</p>
+      <form
+        className="device-category-search"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmitSearch();
+        }}
+      >
+        <input
+          value={modelQuery}
+          onChange={(event) => onQueryChange(event.target.value)}
+          onFocus={onFocusSearch}
+          onBlur={onBlurSearch}
+          placeholder={`Type your ${getCategoryLabel(selectedCategory).toLowerCase()} model`}
+          className="device-category-search-input"
+        />
+        {dropdownOpen ? (
+          <div className="ma-dropdown absolute left-0 right-0 top-[calc(100%+8px)] z-20 text-left">
+            <div className="max-h-72 overflow-y-auto">
+              {suggestions.length > 0 ? (
+                suggestions.map((item) => {
+                  const active = selectedModel?.id === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onMouseDown={() => onSelectSuggestion(item)}
+                      className={`ma-dropdown-row w-full text-left transition ${
+                        active
+                          ? "bg-[rgba(0,106,252,0.08)] text-[#006AFC]"
+                          : "hover:bg-[#F5F5F7]"
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <span className="ma-caption text-[#006AFC]">
+                        {getCategoryLabel(item.category)}
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="ma-dropdown-row justify-start text-[#6E6E73]">
+                  {searchLoading
+                    ? "Looking up devices..."
+                    : "No matching devices yet. Keep typing or try another model."}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </form>
+    </section>
+  );
+}
+
+function TradeInPromoCard({
+  cfg,
+  onCta,
+}: {
+  cfg: LandingPageConfig;
+  onCta: () => void;
+}) {
+  return (
+    <section className="tradein-promo-section">
+      <div className="tradein-promo">
+        <div className="tradein-promo-copy">
+          <h2 className="tradein-promo-title">
+            {cfg.promoTitle}
+            <br />
+            {cfg.promoSubtitle}
+          </h2>
+          <button type="button" onClick={onCta} className="tradein-promo-cta">
+            {cfg.promoCtaLabel}
+          </button>
+        </div>
+        <Image
+          src={cfg.promoImageUrl}
+          alt="Trade-in devices"
+          width={361}
+          height={370}
+          className="tradein-promo-image"
+        />
+      </div>
+    </section>
+  );
+}
+
+function ProcessStepCard({
+  index,
+  title,
+  body,
+  imageUrl,
+}: {
+  index: number;
+  title: string;
+  body: string;
+  imageUrl: string;
+}) {
+  return (
+    <article className="step-card">
+      <Image
+        src={imageUrl}
+        alt={title}
+        width={378}
+        height={187}
+        className="step-card-image"
+      />
+      <div className="step-card-content">
+        <p className="step-number">Step {index + 1}</p>
+        <h3 className="step-title">{title}</h3>
+        <p className="step-description">{body}</p>
+      </div>
+    </article>
+  );
+}
+
+function FAQAccordion({
+  faqs,
+  openIndex,
+  onToggle,
+}: {
+  faqs: LandingPageConfig["faqs"];
+  openIndex: number;
+  onToggle: (index: number) => void;
+}) {
+  return (
+    <section className="faq-section">
+      <div className="faq-inner">
+        <h2 className="faq-title">FAQs</h2>
+        <div className="faq-list">
+          {faqs.map((faq, index) => {
+            const open = index === openIndex;
+            return (
+              <div key={faq.q} className={`faq-item ${open ? "is-open" : ""}`}>
+                <button
+                  type="button"
+                  className="faq-question"
+                  onClick={() => onToggle(index)}
+                  aria-expanded={open}
+                >
+                  <span>{faq.q}</span>
+                  <span className="shrink-0 text-[#1D1D1F]">
+                    <svg
+                      viewBox="0 0 20 20"
+                      className={`h-5 w-5 transition-transform ${open ? "rotate-180" : ""}`}
+                      fill="none"
+                    >
+                      <path
+                        d="M5 8l5 5 5-5"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </button>
+                {open ? <div className="faq-answer">{faq.a}</div> : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FooterSocialIcon({ kind }: { kind: "facebook" | "instagram" | "linkedin" }) {
+  if (kind === "facebook") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+        <path
+          d="M13.2 20v-7h2.2l.4-2.8h-2.6V8.4c0-.8.2-1.4 1.4-1.4H16V4.5c-.2 0-.9-.1-1.8-.1-1.8 0-3 1.1-3 3.2v1.9H9v2.8h2.4v7h1.8Z"
+          fill="#FFFFFF"
+        />
+      </svg>
+    );
+  }
+
+  if (kind === "instagram") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+        <rect x="4.5" y="4.5" width="15" height="15" rx="4" stroke="#FFFFFF" strokeWidth="1.6" />
+        <circle cx="12" cy="12" r="3.4" stroke="#FFFFFF" strokeWidth="1.6" />
+        <circle cx="17" cy="7" r="1" fill="#FFFFFF" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+      <path
+        d="M7.5 9.5V17M7.5 6.8a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6ZM11 17v-4.3c0-1.8 1-3 2.6-3 1.5 0 2.4 1 2.4 2.8V17"
+        stroke="#FFFFFF"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function MobileArcadeFooter() {
+  return (
+    <footer className="ma-footer">
+      <div className="ma-footer-inner">
+        <div>
+          <Image
+            src="/brand/logo-horizontal.png"
+            alt="Mobile Arcade"
+            width={152}
+            height={37}
+            className="ma-footer-logo"
+          />
+          <p className="ma-footer-description">
+            Professional phone, tablet and laptop repair across Norfolk, Suffolk and
+            Lincolnshire. Established 2010 with same-day service and a 6-month UK
+            warranty.
+          </p>
+        </div>
+
+        <div className="footer-group">
+          <h3 className="footer-heading">Company</h3>
+          <div className="footer-links">
+            <a href="#hero-flow" className="footer-link">About us</a>
+            <a href="#hero-flow" className="footer-link">Contact us</a>
+            <a href="#hero-flow" className="footer-link">Track repair</a>
+            <a href="#hero-flow" className="footer-link">Site map</a>
+          </div>
+        </div>
+
+        <div className="footer-group">
+          <h3 className="footer-heading">Services</h3>
+          <div className="footer-links">
+            <a href="#hero-flow" className="footer-link">iPhone repair</a>
+            <a href="#hero-flow" className="footer-link">Samsung repair</a>
+            <a href="#hero-flow" className="footer-link">Screen replacement</a>
+            <a href="#hero-flow" className="footer-link">Battery replacement</a>
+            <a href="#hero-flow" className="footer-link">Laptop repair</a>
+          </div>
+        </div>
+
+        <div className="footer-group">
+          <h3 className="footer-heading">Follow us</h3>
+          <div className="footer-socials">
+            {(["facebook", "instagram", "linkedin"] as const).map((item) => (
+              <a key={item} href="#hero-flow" className="footer-social" aria-label={item}>
+                <FooterSocialIcon kind={item} />
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div className="footer-bottom md:col-span-full">
+          <div className="footer-contact">
+            <span>07402 192492</span>
+            <span>info@mobilearcade.com</span>
+            <a
+              href="https://mobilearcadeltd.co.uk/privacy"
+              target="_blank"
+              rel="noreferrer"
+              className="footer-link"
+            >
+              Privacy
+            </a>
+            <a
+              href="https://mobilearcadeltd.co.uk/terms"
+              target="_blank"
+              rel="noreferrer"
+              className="footer-link"
+            >
+              Terms
+            </a>
+          </div>
+          <div className="footer-copyright">
+            © 2026 Mobile Arcade LTD. Norfolk, United Kingdom.
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 type SupportReason = "typing_error" | "unsupported_device" | "system_down";
 type SupportModalState = {
   title: string;
@@ -439,6 +820,8 @@ function resolveSupportModal(error: unknown): SupportModalState {
 
 export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [deviceCategory, setDeviceCategory] = useState<DeviceCategory>("phone");
+  const [showJourney, setShowJourney] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [modelQuery, setModelQuery] = useState("");
   const [selectedModel, setSelectedModel] = useState<DeviceSuggestion | null>(null);
   const [suggestions, setSuggestions] = useState<DeviceSuggestion[]>([]);
@@ -448,6 +831,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     "good",
   );
   const [requestedAmount, setRequestedAmount] = useState("");
+  const [selectedStorage, setSelectedStorage] = useState<string | null>(null);
+  const [storageScreenOpen, setStorageScreenOpen] = useState(false);
+  const [conditionScreenOpen, setConditionScreenOpen] = useState(false);
   const [quote, setQuote] = useState<QuoteSummary | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [rewardLoading, setRewardLoading] = useState(false);
@@ -526,6 +912,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const carrierPortalLink = trade
     ? carrierPortalLinks[trade.postageService]
     : carrierPortalLinks[resolvedPostageService];
+  const visibleDeviceTypes = deviceTypes;
+  const storageSelectionRequired =
+    deviceCategory === "phone" || deviceCategory === "tablet";
 
   function moveToStep(step: number) {
     setCurrentStep(step);
@@ -542,6 +931,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setQuote(null);
     setTrade(null);
     setSelectedModel(null);
+    setSelectedStorage(null);
+    setStorageScreenOpen(false);
+    setConditionScreenOpen(false);
     setModelQuery("");
     setSuggestions([]);
     setRequestedAmount("");
@@ -565,7 +957,13 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
   function handleCategoryChange(nextCategory: DeviceCategory) {
     setDeviceCategory(nextCategory);
+    setCurrentStep(0);
+    setQuote(null);
+    setTrade(null);
     setSelectedModel(null);
+    setSelectedStorage(null);
+    setStorageScreenOpen(false);
+    setConditionScreenOpen(false);
     setModelQuery("");
     setSuggestions(featuredDevicePicks[nextCategory]);
     setDropdownOpen(false);
@@ -573,9 +971,90 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
   function handleSuggestionSelect(item: DeviceSuggestion) {
     setSelectedModel(item);
+    setSelectedStorage(null);
+    setStorageScreenOpen(false);
+    setConditionScreenOpen(false);
     setModelQuery(item.label);
     setSuggestions([]);
     setDropdownOpen(false);
+  }
+
+  function startJourney(nextCategory?: DeviceCategory) {
+    if (nextCategory) {
+      handleCategoryChange(nextCategory);
+    }
+    setShowJourney(true);
+    window.setTimeout(() => {
+      document.getElementById("hero-flow")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 60);
+  }
+
+  function selectLandingDevice(item: DeviceSuggestion) {
+    setDeviceCategory(item.category);
+    setCurrentStep(0);
+    setQuote(null);
+    setTrade(null);
+    setSelectedStorage(null);
+    setStorageScreenOpen(false);
+    setConditionScreenOpen(false);
+    setSelectedModel(item);
+    setModelQuery(item.label);
+    setSuggestions([]);
+    setDropdownOpen(false);
+    startJourney();
+  }
+
+  function submitLandingSearch() {
+    const normalizedQuery = modelQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      openSupportModal(new Error("Please choose a model from the suggestions first."));
+      return;
+    }
+
+    const mergedCandidates = [...suggestions, ...featuredDevicePicks[deviceCategory]].filter(
+      (item, index, list) => list.findIndex((entry) => entry.id === item.id) === index,
+    );
+    const matchedModel =
+      selectedModel ??
+      mergedCandidates.find((item) => {
+        const fullLabel = item.label.toLowerCase();
+        const modelOnly = item.model.toLowerCase();
+        return (
+          fullLabel === normalizedQuery ||
+          modelOnly === normalizedQuery ||
+          `${item.brand} ${item.model}`.toLowerCase() === normalizedQuery
+        );
+      });
+
+    if (!matchedModel) {
+      openSupportModal(new Error("No matching devices found."));
+      return;
+    }
+
+    selectLandingDevice(matchedModel);
+  }
+
+  async function createQuoteForModel(matchedModel: DeviceSuggestion, requested: number) {
+    setQuoteLoading(true);
+    try {
+      const data = await postJson<{ quote: QuoteSummary }>("/api/trade/quote", {
+        category: deviceCategory,
+        deviceModelId: matchedModel.id,
+        condition,
+        requestedAmountGbp: requested,
+      });
+      setQuote(data.quote);
+      setStorageScreenOpen(false);
+      setConditionScreenOpen(false);
+      moveToStep(1);
+    } catch (error) {
+      openSupportModal(error);
+    } finally {
+      setQuoteLoading(false);
+    }
   }
 
   async function handleQuoteSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -616,21 +1095,17 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       return;
     }
 
-    try {
-      setQuoteLoading(true);
-      const data = await postJson<{ quote: QuoteSummary }>("/api/trade/quote", {
-        category: deviceCategory,
-        deviceModelId: matchedModel.id,
-        condition,
-        requestedAmountGbp: requested,
-      });
-      setQuote(data.quote);
-      moveToStep(1);
-    } catch (error) {
-      openSupportModal(error);
-    } finally {
-      setQuoteLoading(false);
+    if (storageSelectionRequired && !selectedStorage) {
+      setStorageScreenOpen(true);
+      return;
     }
+
+    if (!conditionScreenOpen) {
+      setConditionScreenOpen(true);
+      return;
+    }
+
+    await createQuoteForModel(matchedModel, requested);
   }
 
   async function handleRewardAction(action: "play" | "skip") {
@@ -712,7 +1187,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   }
 
   return (
-    <div className="relative bg-[#f2f3f5]">
+    <div className="ma-page tradein-landing relative bg-white">
       <style>{`@keyframes confetti{0%{transform:translateY(-10px) rotate(0deg);opacity:0}20%{opacity:1}100%{transform:translateY(260px) rotate(260deg);opacity:0}}`}</style>
 
       <Modal
@@ -781,28 +1256,50 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
         )}
       </Modal>
 
-      <header className="border-b border-black/5 bg-white/98">
-        <Container className="flex items-center justify-center py-6 sm:py-7">
-          <Image
-            src="/brand/logo-horizontal.png"
-            alt="Mobile Arcade"
-            width={320}
-            height={68}
-            className="h-10 w-auto sm:h-12"
-            priority
-          />
-        </Container>
-      </header>
+      <LogoOnlyHeader />
 
-      <section id="hero-flow" className="overflow-hidden bg-[#f2f3f5]">
-        <Container className="py-6 sm:py-8">
+      <HeroIntro cfg={cfg} />
+
+      <DeviceCategorySelector
+        selectedCategory={deviceCategory}
+        modelQuery={modelQuery}
+        suggestions={suggestions}
+        selectedModel={selectedModel}
+        dropdownOpen={dropdownOpen}
+        searchLoading={searchLoading}
+        onSelect={(category) => handleCategoryChange(category)}
+        onQueryChange={(value) => {
+          setModelQuery(value);
+          setSelectedModel(null);
+          setDropdownOpen(true);
+        }}
+        onFocusSearch={() => {
+          setSuggestions(featuredDevicePicks[deviceCategory]);
+          setDropdownOpen(true);
+        }}
+        onBlurSearch={() => {
+          window.setTimeout(() => {
+            setDropdownOpen(false);
+          }, 120);
+        }}
+        onSubmitSearch={submitLandingSearch}
+        onSelectSuggestion={selectLandingDevice}
+      />
+
+      <TradeInPromoCard cfg={cfg} onCta={() => startJourney()} />
+
+      {showJourney ? (
+      <section id="hero-flow" className="overflow-hidden bg-white">
+        <Container className="pt-[44px] pb-[32px]">
           <div className="mx-auto max-w-6xl">
-            <div className="flex flex-wrap items-center justify-center gap-2 pb-5">
-              <ProgressPill label="Step 1" active={currentStep === 0} complete={currentStep > 0} />
-              <ProgressPill label="Step 2" active={currentStep === 1} complete={currentStep > 1} />
-              <ProgressPill label="Step 3" active={currentStep === 2} complete={currentStep > 2} />
-              <ProgressPill label="Step 4" active={currentStep === 3} complete={Boolean(trade)} />
-            </div>
+            {storageScreenOpen || conditionScreenOpen ? null : (
+              <div className="flex flex-wrap items-center justify-center gap-2 pb-5">
+                <ProgressPill label="Step 1" active={currentStep === 0} complete={currentStep > 0} />
+                <ProgressPill label="Step 2" active={currentStep === 1} complete={currentStep > 1} />
+                <ProgressPill label="Step 3" active={currentStep === 2} complete={currentStep > 2} />
+                <ProgressPill label="Step 4" active={currentStep === 3} complete={Boolean(trade)} />
+              </div>
+            )}
 
             <div className="overflow-hidden">
               <div
@@ -810,52 +1307,185 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                 style={{ transform: `translateX(-${currentStep * 100}%)` }}
               >
                 <SlideFrame>
-                  <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center text-center">
-                    <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-6xl">
-                      {cfg.heroTitle}
-                    </h1>
-                    <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-                      {cfg.heroSubtitle}
-                    </p>
+                  {storageScreenOpen && selectedModel ? (
+                    <div className="mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-5 text-center">
+                      <div className="flex w-full flex-col items-center gap-7 pb-7 pt-10">
+                        <div className="flex w-full flex-col items-center gap-7">
+                          <div className="flex w-full max-w-[370px] flex-col items-center gap-4">
+                            <h2 className="font-sans text-[28px] font-normal leading-[60px] tracking-[-0.005em] text-[#1D1D1F]">
+                              {selectedModel.model}
+                            </h2>
+                            <p className="max-w-[370px] text-center font-sans text-[16px] font-normal leading-[19px] text-[#6E6E73]">
+                              Confirm the exact storage size printed in Settings &gt; General &gt; About.
+                            </p>
+                          </div>
+
+                          <div className="pill-choice-group w-full">
+                            {storageOptions.map((option) => {
+                              const active = selectedStorage === option;
+                              return (
+                                <button
+                                  key={option}
+                                  type="button"
+                                  onClick={() => setSelectedStorage(option)}
+                                  aria-pressed={active}
+                                  className={`pill-choice transition ${active ? "is-selected" : ""}`}
+                                >
+                                  {option}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex w-full max-w-[179px] flex-col items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setStorageScreenOpen(false)}
+                            className="inline-flex min-h-[51px] w-full items-center justify-center rounded-full border border-[#1D1D1F] bg-white px-8 font-sans text-[16px] font-medium leading-[19px] text-[#1D1D1F]"
+                          >
+                            Back
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!selectedStorage || quoteLoading}
+                            onClick={() => {
+                              setStorageScreenOpen(false);
+                              setConditionScreenOpen(true);
+                            }}
+                            className="inline-flex min-h-[51px] w-full items-center justify-center rounded-full bg-[#006AFC] px-8 font-sans text-[16px] font-medium leading-[19px] text-white disabled:cursor-not-allowed disabled:opacity-65"
+                          >
+                            {quoteLoading ? "Continuing..." : "Continue"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="w-full py-4">
+                        <div className="px-4 text-left font-sans text-[13px] font-semibold leading-4 text-[#070707]">
+                          Step 1 of 6 · Device
+                        </div>
+                        <div className="mt-3 px-4">
+                          <div className="h-1 w-full rounded-[2px] bg-[#E8E8ED]">
+                            <div className="h-1 w-1/6 rounded-[2px] bg-[#006AFC]" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : conditionScreenOpen && selectedModel ? (
+                    <div className="mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-4 text-center">
+                      <div className="flex w-full flex-col items-center gap-7 pb-7 pt-10">
+                        <div className="flex w-full max-w-[370px] flex-col items-center gap-7">
+                          <div className="flex w-full flex-col items-center gap-4">
+                            <h2 className="w-full font-sans text-[28px] font-normal leading-[60px] tracking-[-0.005em] text-[#1D1D1F]">
+                              How would you describe its condition?
+                            </h2>
+                            <p className="w-full max-w-[370px] text-center font-sans text-[16px] font-normal leading-[19px] text-[#6E6E73]">
+                              Be as accurate as you can — your final offer depends on the device matching this description.
+                            </p>
+                          </div>
+
+                          <div className="condition-options">
+                            {deviceConditions.map((item) => {
+                              const active = condition === item.key;
+                              return (
+                                <button
+                                  key={item.key}
+                                  type="button"
+                                  onClick={() => setCondition(item.key)}
+                                  aria-pressed={active}
+                                  className={`text-choice transition ${active ? "is-selected" : ""}`}
+                                >
+                                  <span className="text-choice-title">
+                                    {conditionLabels[item.key]}
+                                  </span>
+                                  <span className="text-choice-description">
+                                    {conditionDescriptions[item.key]}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const requested = Number(requestedAmount);
+                            if (!Number.isFinite(requested) || requested <= 0) {
+                              openSupportModal(new Error("Enter how much you want in GBP."));
+                              return;
+                            }
+                            createQuoteForModel(selectedModel, requested);
+                          }}
+                          disabled={quoteLoading}
+                          className="inline-flex min-h-[51px] w-full max-w-[134px] items-center justify-center rounded-full bg-[#006AFC] px-8 font-sans text-[16px] font-medium leading-[19px] text-white disabled:cursor-not-allowed disabled:opacity-65"
+                        >
+                          {quoteLoading ? "Loading..." : "Continue"}
+                        </button>
+                      </div>
+
+                      <div className="w-full py-4">
+                        <div className="px-4 text-left font-sans text-[13px] font-semibold leading-4 text-[#070707]">
+                          Step 2 of 6 · Condition
+                        </div>
+                        <div className="mt-3 px-4">
+                          <div className="h-1 w-full rounded-[2px] bg-[#E8E8ED]">
+                            <div className="h-1 w-2/6 rounded-[2px] bg-[#006AFC]" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                  <div className="mx-auto flex w-full max-w-[362px] flex-col items-center text-center sm:max-w-[720px]">
+                    <div className="flex w-full flex-col items-center gap-[20px] px-0 pb-[64px]">
+                      <h1 className="ma-display ma-h1 max-w-[362px] text-center leading-[1.18] text-[#070707]">
+                        {cfg.heroTitle}
+                      </h1>
+                      <p className="ma-body max-w-[362px] text-center text-[16px] leading-6 text-[#6E6E73]">
+                        {cfg.heroSubtitle}
+                      </p>
+                    </div>
 
                     <form
                       onSubmit={handleQuoteSubmit}
-                      className="mt-10 w-full rounded-[36px] bg-[#f2f3f5] px-4 py-2 sm:px-10"
+                      className="flex w-full flex-col items-center gap-[18px] bg-white px-0 py-[32px] text-center"
                     >
-                      <div className="text-2xl font-semibold tracking-tight text-foreground">
+                      <div className="ma-display ma-h2 max-w-[362px] text-center leading-8 text-[#1D1D1F]">
                         What device would you like to trade in?
                       </div>
 
-                      <div className="mt-8 grid gap-4 sm:grid-cols-4">
-                        {deviceTypes.map((item) => {
+                      <div className="flex w-full items-start justify-between gap-2 sm:justify-center sm:gap-6">
+                        {visibleDeviceTypes.map((item) => {
                           const active = item.key === deviceCategory;
                           return (
                             <button
                               key={item.key}
                               type="button"
                               onClick={() => handleCategoryChange(item.key)}
-                              className={`rounded-3xl px-4 py-5 text-center transition ${
+                              className={`flex min-w-0 flex-1 flex-col items-center justify-start gap-3 rounded-3xl px-1 py-2 text-center transition sm:max-w-[88px] sm:flex-none ${
                                 active
-                                  ? "text-brand"
+                                  ? "text-[#006AFC]"
                                   : "text-foreground hover:text-brand"
                               }`}
                             >
-                              <div className="flex justify-center">{item.icon}</div>
-                              <div className="mt-3 text-base font-medium">{item.label}</div>
+                              <div className="flex h-10 items-center justify-center">{item.icon}</div>
+                              <div className="text-[14px] font-medium leading-[1.2] text-current">
+                                {item.label}
+                              </div>
                             </button>
                           );
                         })}
                       </div>
 
-                      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                      <div className="flex w-full flex-wrap items-center justify-center gap-2">
                         {featuredDevicePicks[deviceCategory].map((item) => (
                           <button
                             key={item.id}
                             type="button"
                             onClick={() => handleSuggestionSelect(item)}
-                            className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-foreground transition hover:border-brand hover:text-brand"
+                            className="inline-flex items-center gap-2 rounded-full border border-[#E8E8ED] bg-[#F9F9FE] px-4 py-2 text-sm font-medium text-[#1D1D1F] transition hover:border-[#006AFC] hover:text-[#006AFC]"
                           >
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(232,242,255,0.85)] text-brand">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EAEBEF] text-[#006AFC]">
                               {deviceTypes.find((type) => type.key === deviceCategory)?.icon}
                             </span>
                             <span>{item.model}</span>
@@ -863,32 +1493,32 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                         ))}
                       </div>
 
-                      <div className="mt-6 grid gap-3 lg:grid-cols-[1.2fr_0.7fr_0.55fr]">
-                        <div className="relative">
-                          <div className="rounded-full border border-black/20 bg-white px-5 py-1">
-                          <input
-                            value={modelQuery}
-                            onChange={(event) => {
-                              setModelQuery(event.target.value);
-                              setSelectedModel(null);
-                              setDropdownOpen(true);
-                            }}
-                            onFocus={() => {
-                              setSuggestions(featuredDevicePicks[deviceCategory]);
-                              setDropdownOpen(true);
-                            }}
-                            onBlur={() => {
-                              window.setTimeout(() => {
-                                setDropdownOpen(false);
-                              }, 120);
-                            }}
-                            placeholder={`Search your ${getCategoryLabel(deviceCategory).toLowerCase()}`}
-                            className="h-12 w-full bg-transparent text-sm font-medium outline-none"
-                          />
+                      <div className="flex w-full max-w-[362px] flex-col items-center gap-3">
+                        <div className="relative w-full max-w-[283px] sm:max-w-[362px]">
+                          <div className="min-h-12 rounded-full border border-black bg-white px-5 py-1">
+                            <input
+                              value={modelQuery}
+                              onChange={(event) => {
+                                setModelQuery(event.target.value);
+                                setSelectedModel(null);
+                                setDropdownOpen(true);
+                              }}
+                              onFocus={() => {
+                                setSuggestions(featuredDevicePicks[deviceCategory]);
+                                setDropdownOpen(true);
+                              }}
+                              onBlur={() => {
+                                window.setTimeout(() => {
+                                  setDropdownOpen(false);
+                                }, 120);
+                              }}
+                              placeholder={`Search your ${getCategoryLabel(deviceCategory).toLowerCase()}`}
+                              className="h-[46px] w-full bg-transparent text-[14px] font-medium text-[#1D1D1F] placeholder:text-[#B5B5B6] outline-none"
+                            />
                           </div>
                           {dropdownOpen ? (
-                            <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-[24px] border border-black/8 bg-white text-left shadow-[0_18px_40px_rgba(0,0,0,0.08)]">
-                              <div className="max-h-72 overflow-y-auto py-2">
+                            <div className="ma-dropdown absolute left-0 right-0 top-[calc(100%+8px)] z-20 text-left">
+                              <div className="max-h-72 overflow-y-auto">
                                 {suggestions.length > 0 ? (
                                   suggestions.map((item) => {
                                     const active = selectedModel?.id === item.id;
@@ -897,21 +1527,21 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                                         key={item.id}
                                         type="button"
                                         onMouseDown={() => handleSuggestionSelect(item)}
-                                        className={`flex w-full items-center justify-between px-5 py-3 text-left text-sm transition ${
+                                        className={`ma-dropdown-row w-full text-left transition ${
                                           active
-                                            ? "bg-[rgba(232,242,255,0.85)] font-semibold text-brand"
-                                            : "hover:bg-background"
+                                            ? "bg-[rgba(0,106,252,0.08)] text-[#006AFC]"
+                                            : "hover:bg-[#F5F5F7]"
                                         }`}
                                       >
                                         <span>{item.label}</span>
-                                        <span className="text-xs text-muted">
+                                        <span className="ma-caption text-[#006AFC]">
                                           {getCategoryLabel(item.category)}
                                         </span>
                                       </button>
                                     );
                                   })
                                 ) : (
-                                  <div className="px-5 py-3 text-sm text-muted">
+                                  <div className="ma-dropdown-row justify-start text-[#6E6E73]">
                                     {searchLoading
                                       ? "Looking up devices..."
                                       : "We do not yet buy this device. Please try another model."}
@@ -921,104 +1551,77 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                             </div>
                           ) : null}
                         </div>
-                        <div className="grid grid-cols-2 gap-2 rounded-[28px] bg-white/80 p-2 ring-1 ring-inset ring-black/5">
-                          <select
-                            value={condition}
-                            onChange={(event) =>
-                              setCondition(
-                                event.target.value as (typeof deviceConditions)[number]["key"],
-                              )
-                            }
-                            className="rounded-full bg-[#f2f3f5] px-4 py-3 text-sm font-medium outline-none"
-                          >
-                            {deviceConditions.map((item) => (
-                              <option key={item.key} value={item.key}>
-                                {item.label}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="flex items-center rounded-full bg-[#f2f3f5] px-4">
-                            <span className="text-sm font-semibold text-muted">£</span>
-                            <input
-                              type="number"
-                              min="1"
-                              step="1"
-                              inputMode="numeric"
-                              value={requestedAmount}
-                              onChange={(event) => setRequestedAmount(event.target.value)}
-                              placeholder="250"
-                              className="h-12 w-full bg-transparent px-2 text-sm font-semibold outline-none"
-                            />
-                          </div>
+
+                        <div className="flex w-full max-w-[283px] items-center rounded-full border border-black bg-white px-5 sm:max-w-[362px]">
+                          <span className="text-sm font-semibold text-[#1D1D1F]">£</span>
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            inputMode="numeric"
+                            value={requestedAmount}
+                            onChange={(event) => setRequestedAmount(event.target.value)}
+                            placeholder="250"
+                            className="h-[46px] w-full bg-transparent px-2 text-[14px] font-medium text-[#1D1D1F] placeholder:text-[#B5B5B6] outline-none"
+                          />
                         </div>
+
                         <button
                           type="submit"
                           disabled={quoteLoading}
-                          className="inline-flex h-14 items-center justify-center rounded-full bg-brand px-6 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(0,106,252,0.22)] transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-65"
+                          className="inline-flex min-h-12 w-full max-w-[218px] items-center justify-center rounded-full bg-[#006AFC] px-8 text-[16px] font-medium text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-65"
                         >
                           {quoteLoading ? "Finding..." : "Find my phone value"}
                         </button>
                       </div>
                     </form>
                   </div>
+                  )}
                 </SlideFrame>
 
                 <SlideFrame>
-                  <div className="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[0.88fr_1.12fr]">
-                    <div className="rounded-[36px] bg-white p-7 shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
-                      <SmallLabel>Offer summary</SmallLabel>
-                      <div className="mt-4 text-4xl font-semibold tracking-tight text-brand">
-                        {quote ? formatCurrency(quote.cashOfferGbp) : "£0"}
+                  <div className="mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-4 text-center">
+                    <div className="flex w-full flex-col items-center gap-7 pb-7 pt-10">
+                      <div className="flex w-full max-w-[370px] flex-col items-center gap-4">
+                        <h2 className="w-full font-sans text-[28px] font-normal leading-[60px] tracking-[-0.005em] text-[#1D1D1F]">
+                          Your device could be worth
+                        </h2>
+                        <div className="guide-price">
+                          {quote ? getGuidePriceRange(quote.systemMaximumGbp) : "£0–£0"}
+                        </div>
+                        <p className="w-full max-w-[370px] text-center font-sans text-[16px] font-normal leading-[19px] text-[#6E6E73]">
+                          This is a guide based on the model and condition you&apos;ve
+                          selected — not the final offer.
+                        </p>
                       </div>
-                      <div className="mt-4 text-sm leading-6 text-muted">
-                        Device: {quote?.brand} {quote?.model}
-                        <br />
-                        Condition: {quote ? conditionLabels[quote.condition] : "-"}
-                        <br />
-                        You asked for:{" "}
-                        {quote ? formatCurrency(quote.requestedAmountGbp) : "-"}
+
+                      <div className="device-summary">
+                        <div className="device-summary-title">
+                          {quote?.brand} {quote?.model}
+                        </div>
+                        <div className="device-summary-meta">
+                          {selectedStorage ? `${selectedStorage} · ` : ""}
+                          {quote ? conditionLabels[quote.condition] : "-"} condition
+                        </div>
                       </div>
-                      <div className="mt-6 rounded-3xl bg-[#f6f8fc] p-5 text-sm leading-6 text-muted">
-                        {quote?.flowMode === "auto_accept_with_bonus"
-                          ? "Your requested amount is within our system maximum, so we can accept that request and move you into the bonus-prize step."
-                          : "Your requested amount is above our system maximum, so this quote is capped to the best cash offer we can make today. You can now try the bonus-prize step for extra value."}
-                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => moveToStep(2)}
+                        className="inline-flex min-h-[51px] w-full max-w-[134px] items-center justify-center rounded-full bg-[#006AFC] px-8 font-sans text-[16px] font-medium leading-[19px] text-white"
+                      >
+                        Continue
+                      </button>
                     </div>
 
-                    <div className="relative overflow-hidden rounded-[36px] bg-white p-7 shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
-                      <Confetti />
-                      <SmallLabel>
-                        {quote?.flowMode === "auto_accept_with_bonus"
-                          ? "Requested amount accepted"
-                          : "Offer capped at system maximum"}
-                      </SmallLabel>
-                      <h2 className="mt-4 text-4xl font-semibold tracking-tight">
-                        {quote?.flowMode === "auto_accept_with_bonus"
-                          ? "Good news. We can meet your requested price."
-                          : "Your request was above our current maximum."}
-                      </h2>
-                      <p className="mt-4 max-w-2xl text-base leading-7 text-muted">
-                        {quote?.flowMode === "auto_accept_with_bonus"
-                          ? "We have accepted the amount you asked for. The next step is the optional mini-game where the customer can still win bonus prizes before checkout."
-                          : "We are showing the true system maximum for this model and condition. The next step is the mini-game rescue flow so the customer can still try to win extra prize value."}
-                      </p>
-                      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <button
-                          type="button"
-                          onClick={() => moveToStep(2)}
-                          className="inline-flex items-center justify-center rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(0,106,252,0.22)] transition hover:bg-brand-dark"
-                        >
-                          {quote?.flowMode === "auto_accept_with_bonus"
-                            ? "Continue to bonus game"
-                            : "Play for extra prizes"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveToStep(0)}
-                          className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-6 py-3.5 text-sm font-semibold text-foreground transition hover:bg-background"
-                        >
-                          Edit device details
-                        </button>
+                    <div className="w-full py-4">
+                      <div className="px-4 text-left font-sans text-[13px] font-semibold leading-4 text-[#070707]">
+                        Step 3 of 6 · Value
+                      </div>
+                      <div className="mt-3 px-4">
+                        <div className="h-1 w-full rounded-[2px] bg-[#E8E8ED]">
+                          <div className="h-1 w-3/6 rounded-[2px] bg-[#006AFC]" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1096,6 +1699,14 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                                 {quote ? conditionLabels[quote.condition] : "-"}
                               </span>
                             </div>
+                            {selectedStorage ? (
+                              <div className="flex items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3">
+                                <span>Storage</span>
+                                <span className="font-semibold text-foreground">
+                                  {selectedStorage}
+                                </span>
+                              </div>
+                            ) : null}
                             <div className="flex items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3">
                               <span>Cash offer</span>
                               <span className="font-semibold text-foreground">
@@ -1403,168 +2014,36 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
           </div>
         </Container>
       </section>
+      ) : null}
 
-      <section className="bg-white">
-        <Container className="py-12">
-          <div className="relative overflow-hidden rounded-[30px] bg-brand px-8 py-10 text-white shadow-[0_24px_70px_rgba(0,106,252,0.25)] sm:px-12">
-            <div className="grid items-center gap-8 md:grid-cols-[0.9fr_1.1fr]">
-              <div>
-                <div className="max-w-sm text-4xl font-semibold leading-[1.05] tracking-tight">
-                  {cfg.promoTitle}
-                  <br />
-                  {cfg.promoSubtitle}
-                </div>
-                <a
-                  href="#hero-flow"
-                  className="mt-6 inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-brand"
-                >
-                  {cfg.promoCtaLabel}
-                </a>
-              </div>
-              <div className="relative mx-auto h-[240px] w-full max-w-[420px]">
-                <Image
-                  src={cfg.promoImageUrl}
-                  alt="Trade-in devices"
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            </div>
-            <div className="pointer-events-none absolute -right-20 top-[-80px] h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-          </div>
-        </Container>
+      <section className="steps-section">
+        <div className="steps-heading">
+          <h2>Three easy steps</h2>
+          <p>To turn your old device into cash</p>
+        </div>
+
+        <div className="steps-list">
+          {cfg.steps.map((item, index) => (
+            <ProcessStepCard
+              key={item.title}
+              index={index}
+              title={item.title}
+              body={item.body}
+              imageUrl={item.imageUrl}
+            />
+          ))}
+        </div>
       </section>
 
-      <section className="bg-[#e9ebef]">
-        <Container className="py-16">
-          <div className="text-center">
-            <h2 className="text-5xl font-semibold tracking-tight">Three easy steps</h2>
-            <p className="mt-3 text-lg text-muted">
-              To turn your old device into cash
-            </p>
-          </div>
+      <FAQAccordion
+        faqs={cfg.faqs}
+        openIndex={openFaqIndex}
+        onToggle={(index) =>
+          setOpenFaqIndex((current) => (current === index ? -1 : index))
+        }
+      />
 
-          <div className="mt-10 grid gap-6 lg:grid-cols-3">
-            {cfg.steps.map((item, index) => (
-              <div
-                key={item.title}
-                className="overflow-hidden rounded-[28px] bg-white shadow-[0_18px_45px_rgba(0,0,0,0.06)]"
-              >
-                <div className="relative h-52 bg-background">
-                  <Image
-                    src={item.imageUrl}
-                    alt={item.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="p-5">
-                  <div className="text-sm font-semibold text-brand">Step {index + 1}</div>
-                  <div className="mt-2 text-2xl font-semibold tracking-tight">
-                    {item.title}
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-muted">{item.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      <section id="faqs" className="bg-white">
-        <Container className="py-16">
-          <h2 className="text-5xl font-semibold tracking-tight">FAQs</h2>
-          <div className="mt-8 rounded-[28px] bg-white">
-            {cfg.faqs.map((faq, index) => (
-              <details
-                key={faq.q}
-                className={`group ${index === 0 ? "" : "border-t border-black/10"} py-4`}
-              >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold">
-                  <span>{faq.q}</span>
-                  <span className="text-muted transition group-open:rotate-180">⌄</span>
-                </summary>
-                <p className="mt-4 max-w-4xl text-sm leading-7 text-muted">{faq.a}</p>
-              </details>
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      <footer className="bg-[#e9ebef]">
-        <Container className="py-14">
-          <div className="grid gap-10 lg:grid-cols-[1.2fr_0.9fr_0.9fr_0.8fr]">
-            <div>
-              <Image
-                src="/brand/logo-horizontal.png"
-                alt="Mobile Arcade"
-                width={140}
-                height={30}
-                className="h-6 w-auto"
-              />
-              <p className="mt-4 max-w-sm text-sm leading-7 text-muted">
-                Professional phone, tablet and laptop repair across Norfolk and
-                Lincolnshire, with same-day service and a 6-month UK warranty.
-              </p>
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-foreground">Company</div>
-              <div className="mt-4 grid gap-2 text-sm text-muted">
-                <a href="#hero-flow">About us</a>
-                <a href="#hero-flow">Contact us</a>
-                <a href="#hero-flow">Track repair</a>
-                <a href="#hero-flow">Site map</a>
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-foreground">Services</div>
-              <div className="mt-4 grid gap-2 text-sm text-muted">
-                <a href="#hero-flow">iPhone repair</a>
-                <a href="#hero-flow">Samsung repair</a>
-                <a href="#hero-flow">Screen replacement</a>
-                <a href="#hero-flow">Battery replacement</a>
-                <a href="#hero-flow">Laptop repair</a>
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-foreground">Follow us</div>
-              <div className="mt-4 flex gap-3">
-                {["f", "◎", "in"].map((item) => (
-                  <a
-                    key={item}
-                    href="#hero-flow"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-white"
-                  >
-                    {item}
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-12 flex flex-col gap-3 border-t border-black/10 pt-6 text-sm text-muted lg:flex-row lg:items-center lg:justify-between">
-            <div>© 2026 Mobile Arcade LTD. Norfolk, United Kingdom.</div>
-            <div className="flex flex-wrap gap-5">
-              <span>07402 192492</span>
-              <span>info@mobilearcade.com</span>
-              <a
-                href="https://mobilearcadeltd.co.uk/privacy"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Privacy
-              </a>
-              <a
-                href="https://mobilearcadeltd.co.uk/terms"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Terms
-              </a>
-            </div>
-          </div>
-        </Container>
-      </footer>
+      <MobileArcadeFooter />
     </div>
   );
 }
