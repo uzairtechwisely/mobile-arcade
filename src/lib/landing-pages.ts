@@ -1,5 +1,3 @@
-import { imageUrl } from "@/lib/image";
-
 export type LandingPageConfig = {
   slug: string;
   title: string;
@@ -12,8 +10,10 @@ export type LandingPageConfig = {
   promoImageUrl: string;
   steps: Array<{ title: string; body: string; imageUrl: string }>;
   faqs: Array<{ q: string; a: string }>;
-  backgroundImageUrl: string;
 };
+
+const PLACEHOLDER_PROMO = "/brand/placeholders/promo.svg";
+const PLACEHOLDER_STEP = "/brand/placeholders/step.svg";
 
 export const landingPages: LandingPageConfig[] = [
   {
@@ -26,34 +26,22 @@ export const landingPages: LandingPageConfig[] = [
     promoTitle: "Get £75–£500",
     promoSubtitle: "when you trade in any phone",
     promoCtaLabel: "Find my phone value",
-    promoImageUrl: imageUrl(
-      "Ultra realistic premium studio product photo of two modern smartphones angled on a soft gray background, clean lighting, subtle shadow, high detail, retail advertisement style",
-      "portrait_4_3",
-    ),
+    promoImageUrl: PLACEHOLDER_PROMO,
     steps: [
       {
         title: "Get estimated value",
         body: "Tell us your device and condition to receive an instant estimate.",
-        imageUrl: imageUrl(
-          "Ultra realistic photo of a hand holding a modern smartphone showing a clean valuation screen UI, bright natural lighting, minimal background, high detail",
-          "landscape_4_3",
-        ),
+        imageUrl: PLACEHOLDER_STEP,
       },
       {
         title: "Mail it to Mobile Arcade",
         body: "Send it with your preferred postage service and we add that postage amount back after receipt.",
-        imageUrl: imageUrl(
-          "Ultra realistic photo of a small parcel box with protective bubble wrap and shipping label on a clean desk, soft lighting, high detail, premium retail style",
-          "landscape_4_3",
-        ),
+        imageUrl: PLACEHOLDER_STEP,
       },
       {
         title: "Inspection and payment",
         body: "We confirm the condition and pay you fast. No hidden fees.",
-        imageUrl: imageUrl(
-          "Ultra realistic photo of a friendly technician inspecting a smartphone at a clean modern counter, bright lighting, high detail, trustworthy retail vibe",
-          "landscape_4_3",
-        ),
+        imageUrl: PLACEHOLDER_STEP,
       },
     ],
     faqs: [
@@ -78,10 +66,6 @@ export const landingPages: LandingPageConfig[] = [
         a: "Once the device passes inspection, we issue payment using the payout method selected during booking.",
       },
     ],
-    backgroundImageUrl: imageUrl(
-      "Ultra realistic abstract soft gradient background with blue and white light shapes, subtle texture, clean modern website hero background, high resolution",
-      "landscape_16_9",
-    ),
   },
   {
     slug: "christmas",
@@ -93,34 +77,22 @@ export const landingPages: LandingPageConfig[] = [
     promoTitle: "Extra £15 voucher",
     promoSubtitle: "when you trade in before Christmas",
     promoCtaLabel: "Get Christmas quote",
-    promoImageUrl: imageUrl(
-      "Ultra realistic premium studio product photo of modern smartphones with subtle festive wrapping ribbon, clean blue background, retail advertisement style, high detail",
-      "portrait_4_3",
-    ),
+    promoImageUrl: PLACEHOLDER_PROMO,
     steps: [
       {
         title: "Tell us your device",
         body: "Select type, make, model and condition to get your quote.",
-        imageUrl: imageUrl(
-          "Ultra realistic photo of a smartphone on a desk showing a simple form UI, minimal background, clean lighting, high detail",
-          "landscape_4_3",
-        ),
+        imageUrl: PLACEHOLDER_STEP,
       },
       {
         title: "Book free collection",
         body: "Choose a date that suits you. We’ll collect it from your door.",
-        imageUrl: imageUrl(
-          "Ultra realistic photo of a courier parcel pickup at a doorstep with a small box, clean modern look, daylight, high detail",
-          "landscape_4_3",
-        ),
+        imageUrl: PLACEHOLDER_STEP,
       },
       {
         title: "Get paid fast",
         body: "We inspect and confirm. Then we pay out quickly and safely.",
-        imageUrl: imageUrl(
-          "Ultra realistic photo of a payment confirmation on a smartphone screen, clean UI, bright lighting, high detail",
-          "landscape_4_3",
-        ),
+        imageUrl: PLACEHOLDER_STEP,
       },
     ],
     faqs: [
@@ -137,10 +109,6 @@ export const landingPages: LandingPageConfig[] = [
         a: "If condition is different on inspection, we’ll explain why and give you the option to accept or return the device.",
       },
     ],
-    backgroundImageUrl: imageUrl(
-      "Ultra realistic abstract soft gradient background in blue and white with a subtle festive bokeh effect, clean modern website background, high resolution",
-      "landscape_16_9",
-    ),
   },
 ];
 

@@ -114,6 +114,48 @@ async function createTables(db: Client) {
   } catch {
     // Column already exists in previously initialized databases.
   }
+
+  try {
+    await db.execute("ALTER TABLE quotes ADD COLUMN storage_option TEXT");
+  } catch {
+    // Column already exists in previously initialized databases.
+  }
+
+  try {
+    await db.execute("ALTER TABLE quotes ADD COLUMN colour_option TEXT");
+  } catch {
+    // Column already exists in previously initialized databases.
+  }
+
+  try {
+    await db.execute(
+      "ALTER TABLE trades ADD COLUMN has_own_packaging INTEGER NOT NULL DEFAULT 1",
+    );
+  } catch {
+    // Column already exists in previously initialized databases.
+  }
+
+  try {
+    await db.execute(
+      "ALTER TABLE trades ADD COLUMN postage_pack_purchased INTEGER NOT NULL DEFAULT 0",
+    );
+  } catch {
+    // Column already exists in previously initialized databases.
+  }
+
+  try {
+    await db.execute(
+      "ALTER TABLE trades ADD COLUMN postage_pack_stripe_payment_intent_id TEXT",
+    );
+  } catch {
+    // Column already exists in previously initialized databases.
+  }
+
+  try {
+    await db.execute("ALTER TABLE trades ADD COLUMN postage_pack_shipping_address TEXT");
+  } catch {
+    // Column already exists in previously initialized databases.
+  }
 }
 
 async function seedDatabase(db: Client) {

@@ -1,0 +1,6 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" rx="32" fill="#F5F5F7"/>
+  <rect x="120" y="80" width="160" height="220" rx="16" fill="none" stroke="#006AFC" stroke-width="6"/>
+  <circle cx="200" cy="278" r="8" fill="none" stroke="#006AFC" stroke-width="5"/>
+  <text x="200" y="350" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#6E6E73">Add your tablet photo</text>
+</svg>

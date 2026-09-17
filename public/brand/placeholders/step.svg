@@ -1,0 +1,5 @@
+<svg viewBox="0 0 378 187" xmlns="http://www.w3.org/2000/svg">
+  <rect width="378" height="187" rx="20" fill="#F5F5F7"/>
+  <rect x="150" y="48" width="78" height="90" rx="12" fill="none" stroke="#006AFC" stroke-width="5"/>
+  <text x="189" y="160" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#6E6E73">Add photo</text>
+</svg>

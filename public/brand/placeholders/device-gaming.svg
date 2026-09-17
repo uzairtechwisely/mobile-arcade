@@ -1,0 +1,8 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" rx="32" fill="#F5F5F7"/>
+  <path d="M140 170h120a50 50 0 0 1 50 50v30a25 25 0 0 1-45 15l-15-18a20 20 0 0 0-15-7h-70a20 20 0 0 0-15 7l-15 18a25 25 0 0 1-45-15v-30a50 50 0 0 1 50-50Z" fill="none" stroke="#006AFC" stroke-width="6"/>
+  <path d="M168 205v28M154 219h28" stroke="#006AFC" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="255" cy="212" r="4" fill="#006AFC"/>
+  <circle cx="268" cy="225" r="4" fill="#006AFC"/>
+  <text x="200" y="350" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="#6E6E73">Add your device photo</text>
+</svg>

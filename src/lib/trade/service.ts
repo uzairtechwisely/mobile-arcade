@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { getTradeDb } from "@/lib/trade/db";
-import { computeQuoteOutcome } from "@/lib/trade/pricing";
+import { computeQuoteOutcome, getSystemMaximumForCondition } from "@/lib/trade/pricing";
 import {
   type DeviceCategory,
   type DeviceCondition,
@@ -12,6 +12,8 @@ import {
   type RewardSummary,
   type TradeConfirmation,
   conditionLabels,
+  POSTAGE_PACK_COST_GBP,
+  REWARD_TIERS,
 } from "@/lib/trade/shared";
 
 const categoryValues = ["phone", "laptop", "tablet", "gaming_device"] as const;
@@ -28,7 +30,9 @@ const quoteInputSchema = z.object({
   category: z.enum(categoryValues),
   deviceModelId: z.string().min(1),
   condition: z.enum(conditionValues),
-  requestedAmountGbp: z.coerce.number().int().positive().max(5000),
+  storageOption: z.string().trim().max(40).optional(),
+  colourOption: z.string().trim().max(40).optional(),
+  requestedAmountGbp: z.coerce.number().int().positive().max(5000).optional(),
 });
 
 const rewardInputSchema = z.object({
@@ -36,28 +40,35 @@ const rewardInputSchema = z.object({
   action: z.enum(["play", "skip"]),
 });
 
-const confirmTradeSchema = z.object({
-  quoteId: z.string().min(1),
-  customerName: z.string().trim().min(2),
-  customerEmail: z.email(),
-  customerMobile: z
-    .string()
-    .trim()
-    .min(10)
-    .max(20)
-    .regex(/^[0-9+\s()\-]+$/),
-  collectionAddress: z.string().trim().min(10),
-  bankAccountName: z.string().trim().min(2),
-  bankSortCode: z
-    .string()
-    .trim()
-    .regex(/^\d{2}-?\d{2}-?\d{2}$/),
-  bankAccountNumber: z.string().trim().regex(/^\d{6,8}$/),
-  postageService: z.string().trim().min(2),
-  postageTrackingReference: z.string().trim().max(60).optional().or(z.literal("")),
-  estimatedPostageCostGbp: z.coerce.number().int().min(0).max(100),
-  termsAccepted: z.literal(true),
-});
+const confirmTradeSchema = z
+  .object({
+    quoteId: z.string().min(1),
+    customerName: z.string().trim().min(2),
+    customerEmail: z.email(),
+    customerMobile: z
+      .string()
+      .trim()
+      .min(10)
+      .max(20)
+      .regex(/^[0-9+\s()\-]+$/),
+    collectionAddress: z.string().trim().min(10),
+    bankAccountName: z.string().trim().min(2),
+    bankSortCode: z
+      .string()
+      .trim()
+      .regex(/^\d{2}-?\d{2}-?\d{2}$/),
+    bankAccountNumber: z.string().trim().regex(/^\d{6,8}$/),
+    hasOwnPackaging: z.boolean(),
+    postagePackStripePaymentIntentId: z.string().trim().min(1).optional(),
+    termsAccepted: z.literal(true),
+  })
+  .refine(
+    (data) => data.hasOwnPackaging || Boolean(data.postagePackStripePaymentIntentId),
+    {
+      message: "Postage pack payment is required before confirming.",
+      path: ["postagePackStripePaymentIntentId"],
+    },
+  );
 
 const supportRequestSchema = z.object({
   deviceCategory: z.enum(categoryValues),
@@ -169,6 +180,8 @@ function quoteRowToSummary(row: Record<string, unknown>) {
     brand: String(row.brand),
     model: String(row.model),
     condition: String(row.device_condition) as DeviceCondition,
+    storageOption: row.storage_option ? String(row.storage_option) : null,
+    colourOption: row.colour_option ? String(row.colour_option) : null,
     requestedAmountGbp: toNumber(row.requested_amount_gbp),
     systemMaximumGbp: toNumber(row.system_maximum_gbp),
     cashOfferGbp: toNumber(row.cash_offer_gbp),
@@ -179,41 +192,19 @@ function quoteRowToSummary(row: Record<string, unknown>) {
 }
 
 function pickReward(): RewardSummary {
-  const roll = Math.random() * 100;
+  const totalWeight = REWARD_TIERS.reduce((sum, tier) => sum + tier.weight, 0);
+  const roll = Math.random() * totalWeight;
 
-  if (roll < 40) {
-    return {
-      type: "cash_bonus",
-      label: "£5 cash bonus",
-      valueGbp: 5,
-      isCash: true,
-    };
+  let cursor = 0;
+  for (const tier of REWARD_TIERS) {
+    cursor += tier.weight;
+    if (roll < cursor) {
+      return { type: tier.type, label: tier.label, valueGbp: tier.valueGbp, isCash: tier.isCash };
+    }
   }
 
-  if (roll < 70) {
-    return {
-      type: "cash_bonus",
-      label: "£10 cash bonus",
-      valueGbp: 10,
-      isCash: true,
-    };
-  }
-
-  if (roll < 90) {
-    return {
-      type: "ma_voucher",
-      label: "£15 Mobile Arcade voucher",
-      valueGbp: 15,
-      isCash: false,
-    };
-  }
-
-  return {
-    type: "cash_bonus",
-    label: "£20 cash bonus",
-    valueGbp: 20,
-    isCash: true,
-  };
+  const fallback = REWARD_TIERS[0];
+  return { type: fallback.type, label: fallback.label, valueGbp: fallback.valueGbp, isCash: fallback.isCash };
 }
 
 function buildTradeReference() {
@@ -229,6 +220,8 @@ async function getQuoteById(quoteId: string) {
         q.device_model_id,
         q.device_category,
         q.device_condition,
+        q.storage_option,
+        q.colour_option,
         q.requested_amount_gbp,
         q.system_maximum_gbp,
         q.cash_offer_gbp,
@@ -289,8 +282,13 @@ export async function createQuote(input: unknown) {
     throw new Error("Selected model was not found for this category.");
   }
 
+  // "I am not sure" (no requestedAmountGbp) is treated as asking for our best price,
+  // which always resolves to the system maximum for this exact model + condition.
+  const systemMaximumGbp = getSystemMaximumForCondition(model.pricing, parsed.condition);
+  const effectiveRequestedAmountGbp = parsed.requestedAmountGbp ?? systemMaximumGbp;
+
   const quoteOutcome = computeQuoteOutcome(
-    parsed.requestedAmountGbp,
+    effectiveRequestedAmountGbp,
     model.pricing,
     parsed.condition,
   );
@@ -305,6 +303,8 @@ export async function createQuote(input: unknown) {
         device_model_id,
         device_category,
         device_condition,
+        storage_option,
+        colour_option,
         requested_amount_gbp,
         system_maximum_gbp,
         cash_offer_gbp,
@@ -315,14 +315,16 @@ export async function createQuote(input: unknown) {
         reward_value_gbp,
         reward_is_cash,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
       quoteId,
       model.id,
       parsed.category,
       parsed.condition,
-      parsed.requestedAmountGbp,
+      parsed.storageOption ?? null,
+      parsed.colourOption ?? null,
+      effectiveRequestedAmountGbp,
       quoteOutcome.systemMaximumGbp,
       quoteOutcome.cashOfferGbp,
       quoteOutcome.offerStatus,
@@ -342,14 +344,16 @@ export async function createQuote(input: unknown) {
     brand: model.brand,
     model: model.model,
     condition: parsed.condition,
-    requestedAmountGbp: parsed.requestedAmountGbp,
+    storageOption: parsed.storageOption ?? null,
+    colourOption: parsed.colourOption ?? null,
+    requestedAmountGbp: effectiveRequestedAmountGbp,
     systemMaximumGbp: quoteOutcome.systemMaximumGbp,
     cashOfferGbp: quoteOutcome.cashOfferGbp,
     offerStatus: quoteOutcome.offerStatus,
     flowMode: quoteOutcome.flowMode,
     reward: null,
     conditionLabel: conditionLabels[parsed.condition],
-  };
+  } satisfies QuoteSummary & { conditionLabel: string };
 }
 
 export async function resolveReward(input: unknown) {
@@ -415,9 +419,9 @@ export async function confirmTrade(input: unknown) {
         id,
         quote_id,
         trade_reference_id,
+        has_own_packaging,
         postage_service,
         postage_tracking_reference,
-        estimated_postage_cost_gbp,
         postage_reimbursement_gbp
       FROM trades
       WHERE quote_id = ?
@@ -432,11 +436,12 @@ export async function confirmTrade(input: unknown) {
       id: String(existingRow.id),
       quoteId: String(existingRow.quote_id),
       tradeReferenceId: String(existingRow.trade_reference_id),
+      hasOwnPackaging: Boolean(existingRow.has_own_packaging),
       postageService: String(existingRow.postage_service),
       postageTrackingReference: existingRow.postage_tracking_reference
         ? String(existingRow.postage_tracking_reference)
         : null,
-      estimatedPostageCostGbp: toNumber(existingRow.estimated_postage_cost_gbp),
+      estimatedPostageCostGbp: toNumber(existingRow.postage_reimbursement_gbp),
       postageReimbursementGbp: toNumber(existingRow.postage_reimbursement_gbp),
       expectedPayoutOnReceiptGbp:
         quote.cashOfferGbp +
@@ -446,7 +451,10 @@ export async function confirmTrade(input: unknown) {
     } satisfies TradeConfirmation;
   }
 
-  const reimbursement = parsed.estimatedPostageCostGbp;
+  const reimbursement = parsed.hasOwnPackaging ? 0 : POSTAGE_PACK_COST_GBP;
+  const postageService = parsed.hasOwnPackaging
+    ? "Self-packaged collection"
+    : "Mobile Arcade Postage Pack";
   const tradeId = randomUUID();
   const tradeReferenceId = buildTradeReference();
 
@@ -468,8 +476,12 @@ export async function confirmTrade(input: unknown) {
         estimated_postage_cost_gbp,
         postage_reimbursement_gbp,
         terms_accepted,
+        has_own_packaging,
+        postage_pack_purchased,
+        postage_pack_stripe_payment_intent_id,
+        postage_pack_shipping_address,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
       tradeId,
@@ -482,11 +494,15 @@ export async function confirmTrade(input: unknown) {
       parsed.bankAccountName,
       parsed.bankSortCode.replaceAll("-", ""),
       parsed.bankAccountNumber,
-      parsed.postageService,
-      parsed.postageTrackingReference || null,
-      parsed.estimatedPostageCostGbp,
+      postageService,
+      null,
+      reimbursement,
       reimbursement,
       1,
+      parsed.hasOwnPackaging ? 1 : 0,
+      parsed.hasOwnPackaging ? 0 : 1,
+      parsed.postagePackStripePaymentIntentId ?? null,
+      parsed.hasOwnPackaging ? null : parsed.collectionAddress,
       new Date().toISOString(),
     ],
   });
@@ -495,9 +511,10 @@ export async function confirmTrade(input: unknown) {
     id: tradeId,
     quoteId: parsed.quoteId,
     tradeReferenceId,
-    postageService: parsed.postageService,
-    postageTrackingReference: parsed.postageTrackingReference || null,
-    estimatedPostageCostGbp: parsed.estimatedPostageCostGbp,
+    hasOwnPackaging: parsed.hasOwnPackaging,
+    postageService,
+    postageTrackingReference: null,
+    estimatedPostageCostGbp: reimbursement,
     postageReimbursementGbp: reimbursement,
     expectedPayoutOnReceiptGbp:
       quote.cashOfferGbp +
