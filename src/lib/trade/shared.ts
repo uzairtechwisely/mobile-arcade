@@ -44,6 +44,7 @@ export type QuoteSummary = {
   category: DeviceCategory;
   brand: string;
   model: string;
+  imageUrl: string | null;
   condition: DeviceCondition;
   storageOption: string | null;
   colourOption: string | null;

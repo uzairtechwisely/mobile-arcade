@@ -91,6 +91,7 @@ type DeviceModelRow = {
   category: DeviceCategory;
   brand: string;
   model: string;
+  imageUrl: string | null;
   pricing: {
     brand_new: number;
     excellent: number;
@@ -114,6 +115,7 @@ function rowToDeviceModel(row: Record<string, unknown>): DeviceModelRow {
     category: String(row.category) as DeviceCategory,
     brand: String(row.brand),
     model: String(row.model),
+    imageUrl: row.image_url ? String(row.image_url) : null,
     pricing: {
       brand_new: toNumber(row.system_max_brand_new),
       excellent: toNumber(row.system_max_excellent),
@@ -134,6 +136,7 @@ async function getDeviceModelById(id: string) {
         category,
         brand,
         model,
+        image_url,
         system_max_brand_new,
         system_max_excellent,
         system_max_good,
@@ -179,6 +182,7 @@ function quoteRowToSummary(row: Record<string, unknown>) {
     category: String(row.device_category) as DeviceCategory,
     brand: String(row.brand),
     model: String(row.model),
+    imageUrl: row.image_url ? String(row.image_url) : null,
     condition: String(row.device_condition) as DeviceCondition,
     storageOption: row.storage_option ? String(row.storage_option) : null,
     colourOption: row.colour_option ? String(row.colour_option) : null,
@@ -232,7 +236,8 @@ async function getQuoteById(quoteId: string) {
         q.reward_value_gbp,
         q.reward_is_cash,
         d.brand,
-        d.model
+        d.model,
+        d.image_url
       FROM quotes q
       INNER JOIN device_models d ON d.id = q.device_model_id
       WHERE q.id = ?
@@ -255,7 +260,7 @@ export async function searchDeviceModels(
 
   const result = await db.execute({
     sql: `
-      SELECT id, brand, model, category
+      SELECT id, brand, model, category, image_url
       FROM device_models
       WHERE category = ?
         AND (? = '' OR search_text LIKE ?)
@@ -271,6 +276,7 @@ export async function searchDeviceModels(
     model: String(row.model),
     category: String(row.category) as DeviceCategory,
     label: `${String(row.brand)} ${String(row.model)}`,
+    imageUrl: row.image_url ? String(row.image_url) : null,
   }));
 }
 
@@ -343,6 +349,7 @@ export async function createQuote(input: unknown) {
     category: model.category,
     brand: model.brand,
     model: model.model,
+    imageUrl: model.imageUrl,
     condition: parsed.condition,
     storageOption: parsed.storageOption ?? null,
     colourOption: parsed.colourOption ?? null,

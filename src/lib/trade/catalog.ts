@@ -5,6 +5,7 @@ export type SeedDeviceModel = {
   category: DeviceCategory;
   brand: string;
   model: string;
+  imageUrl?: string;
   systemMaxBrandNew: number;
   systemMaxExcellent: number;
   systemMaxGood: number;

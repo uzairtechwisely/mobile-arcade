@@ -32,6 +32,7 @@ async function createTables(db: Client) {
       category TEXT NOT NULL,
       brand TEXT NOT NULL,
       model TEXT NOT NULL,
+      image_url TEXT,
       search_text TEXT NOT NULL,
       system_max_brand_new INTEGER NOT NULL,
       system_max_excellent INTEGER NOT NULL,
@@ -122,6 +123,12 @@ async function createTables(db: Client) {
   }
 
   try {
+    await db.execute("ALTER TABLE device_models ADD COLUMN image_url TEXT");
+  } catch {
+    // Column already exists in previously initialized databases.
+  }
+
+  try {
     await db.execute("ALTER TABLE quotes ADD COLUMN colour_option TEXT");
   } catch {
     // Column already exists in previously initialized databases.
@@ -167,6 +174,7 @@ async function seedDatabase(db: Client) {
           category,
           brand,
           model,
+          image_url,
           search_text,
           system_max_brand_new,
           system_max_excellent,
@@ -175,13 +183,14 @@ async function seedDatabase(db: Client) {
           system_max_cracked_working,
           system_max_cracked_not_working,
           created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       args: [
         item.id,
         item.category,
         item.brand,
         item.model,
+        item.imageUrl ?? null,
         `${item.brand} ${item.model}`.toLowerCase(),
         item.systemMaxBrandNew,
         item.systemMaxExcellent,

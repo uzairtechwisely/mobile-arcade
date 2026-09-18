@@ -14,6 +14,7 @@ type SpreadsheetRow = {
   category?: string;
   brand?: string;
   model?: string;
+  image_url?: string;
   system_max_brand_new?: number | string;
   system_max_excellent?: number | string;
   system_max_good?: number | string;
@@ -36,6 +37,7 @@ function normalizeRow(row: SpreadsheetRow): SeedDeviceModel | null {
     category: String(row.category).trim() as SeedDeviceModel["category"],
     brand: String(row.brand).trim(),
     model: String(row.model).trim(),
+    imageUrl: row.image_url ? String(row.image_url).trim() : undefined,
     systemMaxBrandNew: toNumber(row.system_max_brand_new),
     systemMaxExcellent: toNumber(row.system_max_excellent),
     systemMaxGood: toNumber(row.system_max_good),

@@ -26,9 +26,11 @@ type DeviceSuggestion = {
   model: string;
   category: DeviceCategory;
   label: string;
+  imageUrl?: string | null;
 };
 
 type JourneyStep =
+  | "model"
   | "condition"
   | "storage"
   | "colour"
@@ -45,6 +47,12 @@ const devicePlaceholderSrc: Record<DeviceCategory, string> = {
   laptop: "/brand/placeholders/device-laptop.svg",
   gaming_device: "/brand/placeholders/device-gaming.svg",
 };
+
+// Real per-model photography isn't populated in the catalog yet — falls back to
+// the on-brand category placeholder until image_url is set for a given model.
+function getDeviceImageSrc(item: { category: DeviceCategory; imageUrl?: string | null }) {
+  return item.imageUrl || devicePlaceholderSrc[item.category];
+}
 
 const deviceTypes: Array<{
   key: DeviceCategory;
@@ -150,8 +158,9 @@ const conditionDescriptions: Record<DeviceCondition, string> = {
 };
 
 const STEP_ORDER: JourneyStep[] = [
-  "condition",
+  "model",
   "storage",
+  "condition",
   "colour",
   "review",
   "congrats",
@@ -160,6 +169,7 @@ const STEP_ORDER: JourneyStep[] = [
   "done",
 ];
 const STEP_LABELS: Record<JourneyStep, string> = {
+  model: "Device",
   condition: "Condition",
   storage: "Storage",
   colour: "Colour",
@@ -171,11 +181,18 @@ const STEP_LABELS: Record<JourneyStep, string> = {
   done: "Done",
 };
 
-function getLandingPrompt(category: DeviceCategory) {
-  if (category === "phone") return "Which phone do you have?";
-  if (category === "laptop") return "Which laptop do you have?";
-  if (category === "tablet") return "Which tablet or iPad do you have?";
-  return "Which gaming device do you have?";
+function getModelStepTitle(category: DeviceCategory) {
+  if (category === "phone") return "Which phone are you trading in?";
+  if (category === "laptop") return "Which laptop are you trading in?";
+  if (category === "tablet") return "Which tablet are you trading in?";
+  return "Which gaming device are you trading in?";
+}
+
+function getFindValueCtaLabel(category: DeviceCategory) {
+  if (category === "phone") return "Find my phone value";
+  if (category === "laptop") return "Find my laptop value";
+  if (category === "tablet") return "Find my tablet value";
+  return "Find my gaming device value";
 }
 
 function Confetti() {
@@ -198,24 +215,29 @@ function Confetti() {
   );
 }
 
-function StepProgress({ step }: { step: JourneyStep }) {
+function TradeInProgress({ step }: { step: JourneyStep }) {
   const displayStep = step === "postagePack" ? "checkout" : step;
-  const index = STEP_ORDER.indexOf(displayStep);
+  const activeRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [displayStep]);
+
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-2 px-4 pb-6">
-      <div className="flex w-full items-center gap-1.5">
-        {STEP_ORDER.map((s, i) => (
+    <div className="tradein-progress">
+      {STEP_ORDER.map((s) => {
+        const active = s === displayStep;
+        return (
           <div
             key={s}
-            className={`h-1 flex-1 rounded-full transition-colors ${
-              i <= index ? "bg-brand" : "bg-[#E8E8ED]"
-            }`}
-          />
-        ))}
-      </div>
-      <div className="ma-caption text-[#6E6E73]">
-        Step {index + 1} of {STEP_ORDER.length} &middot; {STEP_LABELS[step]}
-      </div>
+            ref={active ? activeRef : undefined}
+            className={`tradein-progress-step ${active ? "is-active" : ""}`}
+          >
+            <span className="tradein-progress-dot" />
+            <span>{STEP_LABELS[s]}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -292,32 +314,10 @@ function HeroIntro({ cfg }: { cfg: LandingPageConfig }) {
 
 function DeviceCategorySelector({
   selectedCategory,
-  modelQuery,
-  suggestions,
-  selectedModel,
-  dropdownOpen,
-  searchLoading,
-  inputRef,
   onSelect,
-  onQueryChange,
-  onFocusSearch,
-  onBlurSearch,
-  onSubmitSearch,
-  onSelectSuggestion,
 }: {
   selectedCategory: DeviceCategory;
-  modelQuery: string;
-  suggestions: DeviceSuggestion[];
-  selectedModel: DeviceSuggestion | null;
-  dropdownOpen: boolean;
-  searchLoading: boolean;
-  inputRef: React.RefObject<HTMLInputElement | null>;
   onSelect: (category: DeviceCategory) => void;
-  onQueryChange: (value: string) => void;
-  onFocusSearch: () => void;
-  onBlurSearch: () => void;
-  onSubmitSearch: () => void;
-  onSelectSuggestion: (item: DeviceSuggestion) => void;
 }) {
   return (
     <section className="device-category-section" id="device-search">
@@ -338,56 +338,6 @@ function DeviceCategorySelector({
           );
         })}
       </div>
-      <p className="device-category-helper">{getLandingPrompt(selectedCategory)}</p>
-      <form
-        className="device-category-search"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSubmitSearch();
-        }}
-      >
-        <label htmlFor="device-model-search" className="sr-only">
-          Search for your device model
-        </label>
-        <input
-          id="device-model-search"
-          ref={inputRef}
-          value={modelQuery}
-          onChange={(event) => onQueryChange(event.target.value)}
-          onFocus={onFocusSearch}
-          onBlur={onBlurSearch}
-          placeholder={`Type your ${getCategoryLabel(selectedCategory).toLowerCase()} model`}
-          className="device-category-search-input"
-        />
-        {dropdownOpen ? (
-          <div className="ma-dropdown absolute left-0 right-0 top-[calc(100%+8px)] z-20 text-left">
-            <div className="max-h-72 overflow-y-auto">
-              {suggestions.length > 0 ? (
-                suggestions.map((item) => {
-                  const active = selectedModel?.id === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onMouseDown={() => onSelectSuggestion(item)}
-                      className={`ma-dropdown-row w-full text-left transition ${
-                        active ? "bg-[rgba(0,106,252,0.08)] text-[#006AFC]" : "hover:bg-[#F5F5F7]"
-                      }`}
-                    >
-                      <span>{item.label}</span>
-                      <span className="ma-caption text-[#006AFC]">{getCategoryLabel(item.category)}</span>
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="ma-dropdown-row justify-start text-[#6E6E73]">
-                  {searchLoading ? "Looking up devices..." : "No matching devices yet. Keep typing or try another model."}
-                </div>
-              )}
-            </div>
-          </div>
-        ) : null}
-      </form>
     </section>
   );
 }
@@ -398,7 +348,7 @@ function TradeInPromoCard({ cfg, onCta }: { cfg: LandingPageConfig; onCta: () =>
       <div className="tradein-promo">
         <div className="tradein-promo-copy">
           <h2 className="tradein-promo-title">
-            {cfg.promoTitle}
+            <strong>{cfg.promoTitle}</strong>
             <br />
             {cfg.promoSubtitle}
           </h2>
@@ -815,7 +765,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   }
 
   function resetJourney() {
-    setStep("condition");
+    setStep("model");
     setQuote(null);
     setTrade(null);
     setSelectedModel(null);
@@ -852,44 +802,36 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setShowJourney(false);
   }
 
-  function handleCategoryChange(nextCategory: DeviceCategory) {
-    setDeviceCategory(nextCategory);
-    setSelectedModel(null);
-    setModelQuery("");
-    setSuggestions(featuredDevicePicks[nextCategory]);
-    setDropdownOpen(false);
-  }
-
-  function beginJourneyWithDevice(item: DeviceSuggestion) {
-    setDeviceCategory(item.category);
+  // Landing-page category icons and the promo CTA both just start the funnel;
+  // the exact model is chosen as the funnel's own first step.
+  function startFunnelForCategory(category: DeviceCategory) {
+    setDeviceCategory(category);
     resetJourney();
-    setSelectedModel(item);
-    setModelQuery(item.label);
-    setSuggestions([]);
-    setDropdownOpen(false);
+    setSuggestions(featuredDevicePicks[category]);
     setShowJourney(true);
     window.setTimeout(() => {
       document.getElementById("trade-journey")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 60);
   }
 
-  function scrollToDeviceSearch() {
-    document.getElementById("device-search")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => searchInputRef.current?.focus(), 350);
+  function selectModelSuggestion(item: DeviceSuggestion) {
+    setSelectedModel(item);
+    setModelQuery(item.label);
+    setSuggestions([]);
+    setDropdownOpen(false);
   }
 
-  function submitLandingSearch() {
+  function resolveModelMatch(): DeviceSuggestion | null {
+    if (selectedModel) return selectedModel;
+
     const normalizedQuery = modelQuery.trim().toLowerCase();
-    if (!normalizedQuery) {
-      openSupportModal(new Error("Please choose a model from the suggestions first."));
-      return;
-    }
+    if (!normalizedQuery) return null;
 
     const mergedCandidates = [...suggestions, ...featuredDevicePicks[deviceCategory]].filter(
       (item, index, list) => list.findIndex((entry) => entry.id === item.id) === index,
     );
-    const matchedModel =
-      selectedModel ??
+
+    return (
       mergedCandidates.find((item) => {
         const fullLabel = item.label.toLowerCase();
         const modelOnly = item.model.toLowerCase();
@@ -898,14 +840,21 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
           modelOnly === normalizedQuery ||
           `${item.brand} ${item.model}`.toLowerCase() === normalizedQuery
         );
-      });
+      }) ?? null
+    );
+  }
 
-    if (!matchedModel) {
-      openSupportModal(new Error("No matching devices found."));
+  function continueFromModelStep() {
+    const matched = resolveModelMatch();
+    if (!matched) {
+      openSupportModal(
+        new Error(modelQuery.trim() ? "No matching devices found." : "Please choose a model from the suggestions first."),
+      );
       return;
     }
 
-    beginJourneyWithDevice(matchedModel);
+    selectModelSuggestion(matched);
+    setStep("storage");
   }
 
   async function submitAmount(mode: "unsure" | "sell") {
@@ -1214,32 +1163,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       <LogoOnlyHeader />
       <HeroIntro cfg={cfg} />
 
-      <DeviceCategorySelector
-        selectedCategory={deviceCategory}
-        modelQuery={modelQuery}
-        suggestions={suggestions}
-        selectedModel={selectedModel}
-        dropdownOpen={dropdownOpen}
-        searchLoading={searchLoading}
-        inputRef={searchInputRef}
-        onSelect={handleCategoryChange}
-        onQueryChange={(value) => {
-          setModelQuery(value);
-          setSelectedModel(null);
-          setDropdownOpen(true);
-        }}
-        onFocusSearch={() => {
-          setSuggestions(featuredDevicePicks[deviceCategory]);
-          setDropdownOpen(true);
-        }}
-        onBlurSearch={() => {
-          window.setTimeout(() => setDropdownOpen(false), 120);
-        }}
-        onSubmitSearch={submitLandingSearch}
-        onSelectSuggestion={beginJourneyWithDevice}
-      />
+      <DeviceCategorySelector selectedCategory={deviceCategory} onSelect={startFunnelForCategory} />
 
-      <TradeInPromoCard cfg={cfg} onCta={scrollToDeviceSearch} />
+      <TradeInPromoCard cfg={cfg} onCta={() => startFunnelForCategory(deviceCategory)} />
 
       {showJourney ? (
         <section id="trade-journey" className="overflow-hidden bg-white">
@@ -1251,9 +1177,77 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
             </button>
           </div>
 
+          <TradeInProgress step={step} />
+
           <Container className="pb-[48px] pt-[8px]">
             <div className="mx-auto max-w-xl">
-              <StepProgress step={step} />
+              {step === "model" ? (
+                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-4 py-8 text-center">
+                  <div className="flex w-full flex-col items-center gap-5">
+                    <div className="flex w-full max-w-[320px] flex-col items-center gap-3.5">
+                      <h2 className="w-full font-sans text-[28px] font-medium leading-[28px] text-[#1D1D1F]">
+                        {getModelStepTitle(deviceCategory)}
+                      </h2>
+                      <p className="w-full font-sans text-[16px] font-normal leading-[19px] text-[#6E6E73]">
+                        Search by brand or model to get an instant, accurate trade-in quote.
+                      </p>
+                    </div>
+
+                    <form
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        continueFromModelStep();
+                      }}
+                      className="flex w-full max-w-[283px] flex-col items-center gap-5"
+                    >
+                      <label htmlFor="funnel-model-search" className="sr-only">
+                        Search for your device model
+                      </label>
+                      <input
+                        id="funnel-model-search"
+                        ref={searchInputRef}
+                        value={modelQuery}
+                        onChange={(event) => {
+                          setModelQuery(event.target.value);
+                          setSelectedModel(null);
+                          setDropdownOpen(true);
+                        }}
+                        onFocus={() => {
+                          setSuggestions(featuredDevicePicks[deviceCategory]);
+                          setDropdownOpen(true);
+                        }}
+                        placeholder={`Search your ${getCategoryLabel(deviceCategory)}`}
+                        className="device-category-search-input w-full"
+                      />
+
+                      <Button type="submit" className="!rounded-full !text-base !font-medium">
+                        {getFindValueCtaLabel(deviceCategory)}
+                      </Button>
+                    </form>
+
+                    {dropdownOpen ? (
+                      <div className="model-results">
+                        {suggestions.length > 0 ? (
+                          suggestions.map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onMouseDown={() => selectModelSuggestion(item)}
+                              className="model-result"
+                            >
+                              <span>{item.label}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="model-result text-[#6E6E73]">
+                            {searchLoading ? "Looking up devices..." : "No matching devices yet. Keep typing or try another model."}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               {step === "condition" ? (
                 <div className="mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-4 text-center">
@@ -1283,47 +1277,70 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       ))}
                     </div>
 
-                    <Button type="button" onClick={() => setStep("storage")} className="w-full max-w-[220px]">
-                      Continue
-                    </Button>
+                    <div className="flex w-full max-w-[280px] flex-col items-center gap-3 sm:flex-row-reverse">
+                      <Button type="button" onClick={() => setStep("colour")} className="w-full">
+                        Continue
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => setStep("storage")} className="w-full">
+                        Back
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : null}
 
               {step === "storage" ? (
-                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-5 text-center">
-                  <div className="flex w-full flex-col items-center gap-7 pb-7 pt-4">
-                    <div className="flex w-full max-w-[370px] flex-col items-center gap-4">
-                      <h2 className="font-sans text-[26px] font-normal leading-[1.3] tracking-[-0.005em] text-[#1D1D1F]">
-                        {activeBrandModel}
-                      </h2>
-                      <p className="max-w-[370px] text-center font-sans text-[16px] font-normal leading-[19px] text-[#6E6E73]">
-                        Confirm the storage size, printed in Settings &gt; General &gt; About.
-                      </p>
+                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center gap-5 bg-white px-5 py-8 text-center">
+                  <div className="device-preview">
+                    <Image
+                      src={getDeviceImageSrc(selectedModel ?? { category: deviceCategory })}
+                      alt={activeBrandModel || getCategoryLabel(deviceCategory)}
+                      width={200}
+                      height={228}
+                      unoptimized
+                      className="device-preview-image"
+                    />
+                    <div>
+                      <h2 className="device-preview-name">{activeBrandModel}</h2>
+                      <button type="button" onClick={() => setStep("model")} className="change-device-link">
+                        Change device
+                      </button>
                     </div>
+                  </div>
 
-                    <div className="pill-choice-group w-full">
-                      {storageChoices.map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => setSelectedStorage(option)}
-                          aria-pressed={selectedStorage === option}
-                          className={`pill-choice transition ${selectedStorage === option ? "is-selected" : ""}`}
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="storage-info">
+                    <h3 className="storage-title">Confirm the exact storage size</h3>
+                    <p className="storage-help">
+                      Check Settings &gt; General &gt; About to confirm the storage size of your {activeBrandModel}.
+                    </p>
+                  </div>
 
-                    <div className="flex w-full max-w-[280px] flex-col items-center gap-3 sm:flex-row-reverse">
-                      <Button type="button" disabled={!selectedStorage} onClick={() => setStep("colour")} className="w-full">
-                        Continue
-                      </Button>
-                      <Button type="button" variant="secondary" onClick={() => setStep("condition")} className="w-full">
-                        Back
-                      </Button>
-                    </div>
+                  <div className="storage-options">
+                    {storageChoices.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => setSelectedStorage(option)}
+                        aria-pressed={selectedStorage === option}
+                        className={`storage-option ${selectedStorage === option ? "is-selected" : ""}`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex w-full flex-col gap-3">
+                    <button
+                      type="button"
+                      disabled={!selectedStorage}
+                      onClick={() => setStep("condition")}
+                      className="storage-continue disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Continue
+                    </button>
+                    <Button type="button" variant="secondary" onClick={() => setStep("model")} className="w-full">
+                      Back
+                    </Button>
                   </div>
                 </div>
               ) : null}
@@ -1359,7 +1376,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       <Button type="button" disabled={!selectedColour} onClick={() => setStep("review")} className="w-full">
                         Continue
                       </Button>
-                      <Button type="button" variant="secondary" onClick={() => setStep("storage")} className="w-full">
+                      <Button type="button" variant="secondary" onClick={() => setStep("condition")} className="w-full">
                         Back
                       </Button>
                     </div>
@@ -1372,8 +1389,8 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                   <div className="flex w-full flex-col items-center gap-6 pb-7 pt-4">
                     <div className="device-visual">
                       <Image
-                        src={devicePlaceholderSrc[deviceCategory]}
-                        alt={`${activeBrandModel || getCategoryLabel(deviceCategory)} placeholder`}
+                        src={getDeviceImageSrc(selectedModel ?? { category: deviceCategory })}
+                        alt={activeBrandModel || getCategoryLabel(deviceCategory)}
                         width={200}
                         height={200}
                         unoptimized
@@ -1449,7 +1466,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                   <Confetti />
                   <div className="device-visual">
                     <Image
-                      src={devicePlaceholderSrc[quote.category]}
+                      src={getDeviceImageSrc(quote)}
                       alt={`${quote.brand} ${quote.model} placeholder`}
                       width={200}
                       height={200}
@@ -1482,7 +1499,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                 <div className="mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
                   <div className="mx-auto device-visual">
                     <Image
-                      src={devicePlaceholderSrc[quote.category]}
+                      src={getDeviceImageSrc(quote)}
                       alt={`${quote.brand} ${quote.model} placeholder`}
                       width={200}
                       height={200}
