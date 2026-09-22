@@ -931,12 +931,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setShowJourney(false);
   }
 
-  // Landing-page category icons just select a category and update the promo
-  // banner in place; the funnel itself only starts from the promo CTA.
-  function selectCategory(category: DeviceCategory) {
-    setDeviceCategory(category);
-  }
-
   function startFunnelForCategory(category: DeviceCategory) {
     setDeviceCategory(category);
     resetJourney();
@@ -1302,7 +1296,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       <LogoOnlyHeader />
       <HeroIntro cfg={cfg} />
 
-      <DeviceCategorySelector selectedCategory={deviceCategory} onSelect={selectCategory} />
+      <DeviceCategorySelector selectedCategory={deviceCategory} onSelect={startFunnelForCategory} />
 
       <TradeInPromoCard category={deviceCategory} cfg={cfg} onCta={() => startFunnelForCategory(deviceCategory)} />
 
@@ -1625,8 +1619,8 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ) : null}
 
               {step === "checkout" && quote ? (
-                <div className="mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[560px] lg:p-14">
-                  <div className="mx-auto device-visual lg:scale-125">
+                <div className="mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[560px] lg:p-6">
+                  <div className="mx-auto device-visual checkout-device-visual">
                     <Image
                       src={getDeviceImageSrc(quote)}
                       alt={`${quote.brand} ${quote.model} placeholder`}
@@ -1637,7 +1631,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     <span className="device-visual-badge">Sold</span>
                   </div>
 
-                  <div className="mt-6 space-y-2 text-left lg:mt-10">
+                  <div className="mt-6 space-y-1.5 text-left lg:mt-3 lg:space-y-1">
                     <div className="summary-row">
                       <span className="summary-row-label">Device</span>
                       <span className="summary-row-value">{quote.brand} {quote.model}</span>
@@ -1664,11 +1658,11 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     ) : null}
                   </div>
 
-                  <div className="mt-6 text-left lg:mt-10">
-                    <h3 className="text-base font-semibold text-[#1D1D1F] lg:text-lg">
+                  <div className="mt-6 text-left lg:mt-4">
+                    <h3 className="text-base font-semibold text-[#1D1D1F] lg:text-base">
                       Do you have safe packaging (e.g. the original box) to send your device in?
                     </h3>
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row lg:mt-3">
                       <Button type="button" onClick={() => choosePackaging(true)} className="w-full">
                         Yes, I have packaging
                       </Button>
@@ -1831,13 +1825,32 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     details you provided. Reference:{" "}
                     <span className="font-semibold">{trade.tradeReferenceId}</span>
                   </p>
-                  <div className="mt-6 rounded-2xl bg-white/10 p-4 text-left text-xs leading-5 text-white lg:mt-10 lg:p-6 lg:text-sm">
+                  <div className="mt-6 rounded-2xl bg-white/10 p-4 text-left text-xs leading-5 text-white lg:mt-8 lg:p-6 lg:text-sm">
                     We will never call you to ask for your bank card details, ask you to move funds into
                     another account, or ask for any payment before we pay you.
                   </div>
-                  <Button type="button" variant="secondary" onClick={cancelJourney} className="mt-6 !bg-white !text-brand w-full lg:mt-10 lg:max-w-[320px] lg:mx-auto">
-                    Start another quote
-                  </Button>
+
+                  <div
+                    className="mt-6 rounded-2xl p-5 text-left lg:mt-6 lg:p-6"
+                    style={{ background: "var(--ma-purple)" }}
+                  >
+                    <p className="text-sm font-semibold text-white lg:text-base">
+                      Got another old phone gathering dust?
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-white/85 lg:text-sm">
+                      Sell it alongside this one &mdash; even if it&apos;s the one buried in your mum&apos;s
+                      attic &mdash; and unlock bulk pricing on your next trade-in.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => startFunnelForCategory(deviceCategory)}
+                      className="mt-4 w-full lg:mx-auto lg:max-w-[320px]"
+                      style={{ color: "var(--ma-purple)" }}
+                    >
+                      Start another quote
+                    </Button>
+                  </div>
                 </div>
               ) : null}
             </div>
