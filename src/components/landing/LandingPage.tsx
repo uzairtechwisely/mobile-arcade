@@ -245,7 +245,7 @@ function TradeInProgress({ step, onNavigate }: { step: JourneyStep; onNavigate: 
             disabled={!reached}
             onClick={() => onNavigate(STAGE_ENTRY_STEP[stage])}
             aria-current={active ? "step" : undefined}
-            className={`tradein-progress-step ${reached ? "is-active" : ""}`}
+            className={`tradein-progress-step ${reached ? "is-active" : ""} ${active ? "current" : ""}`}
           >
             <span className="tradein-progress-dot" />
             <span>{STAGE_LABELS[stage]}</span>
@@ -718,6 +718,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [spinRotation, setSpinRotation] = useState(0);
   const [rewardRevealed, setRewardRevealed] = useState(false);
   const [rewardLoading, setRewardLoading] = useState(false);
+  const [spinError, setSpinError] = useState<string | null>(null);
 
   const [hasOwnPackaging, setHasOwnPackaging] = useState<boolean | null>(null);
   const [postagePackLoading, setPostagePackLoading] = useState(false);
@@ -734,6 +735,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [trade, setTrade] = useState<TradeConfirmation | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const [supportModal, setSupportModal] = useState<SupportModalState | null>(null);
   const [supportName, setSupportName] = useState("");
@@ -857,9 +859,11 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setSpinOpen(false);
     setSpinning(false);
     setRewardRevealed(false);
+    setSpinError(null);
     setHasOwnPackaging(null);
     setPostagePackPaymentIntentId(null);
     setPostagePackError(null);
+    setConfirmError(null);
     setCustomerName("");
     setCustomerEmail("");
     setCustomerMobile("");
@@ -1014,6 +1018,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     if (!quote || spinning) return;
     setSpinning(true);
     setRewardLoading(true);
+    setSpinError(null);
     try {
       const data = await postJson<{ quote: QuoteSummary }>("/api/trade/reward", {
         quoteId: quote.id,
@@ -1036,7 +1041,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       }, 4300);
     } catch (error) {
       setSpinning(false);
-      openSupportModal(error);
+      setSpinError(error instanceof Error ? error.message : "Unable to spin right now. Please try again.");
     } finally {
       setRewardLoading(false);
     }
@@ -1085,6 +1090,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
     try {
       setConfirmLoading(true);
+      setConfirmError(null);
       const data = await postJson<{ trade: TradeConfirmation }>("/api/trade/confirm", {
         quoteId: quote.id,
         customerName,
@@ -1103,7 +1109,11 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       window.sessionStorage.removeItem("ma_pending_quote");
       window.sessionStorage.removeItem("ma_pending_address");
     } catch (error) {
-      openSupportModal(error);
+      setConfirmError(
+        error instanceof Error
+          ? error.message
+          : "We could not confirm your trade. Please check your details and try again.",
+      );
     } finally {
       setConfirmLoading(false);
     }
@@ -1269,13 +1279,13 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
           <Container className="pb-[48px] pt-[8px]">
             <div className="mx-auto max-w-xl">
               {step === "model" ? (
-                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-4 py-8 text-center">
+                <div className="model-search-main mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-4 py-8 text-center">
                   <div className="flex w-full flex-col items-center gap-5">
                     <div className="flex w-full max-w-[320px] flex-col items-center gap-3.5">
-                      <h2 className="w-full font-sans text-[28px] font-medium leading-[28px] text-[#1D1D1F]">
+                      <h2 className="model-search-title w-full font-sans text-[28px] font-medium leading-[28px] text-[#1D1D1F]">
                         {getModelStepTitle(deviceCategory)}
                       </h2>
-                      <p className="w-full font-sans text-[16px] font-normal leading-[19px] text-[#6E6E73]">
+                      <p className="model-search-help w-full font-sans text-[16px] font-normal leading-[19px] text-[#6E6E73]">
                         Search by brand or model to get an instant, accurate trade-in quote.
                       </p>
                     </div>
@@ -1285,7 +1295,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                         event.preventDefault();
                         continueFromModelStep();
                       }}
-                      className="flex w-full max-w-[283px] flex-col items-center gap-5"
+                      className="model-search-controls flex w-full max-w-[283px] flex-col items-center gap-5"
                     >
                       <label htmlFor="funnel-model-search" className="sr-only">
                         Search for your device model
@@ -1304,10 +1314,10 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                           setDropdownOpen(true);
                         }}
                         placeholder={`Search your ${getCategoryLabel(deviceCategory)}`}
-                        className="device-category-search-input w-full"
+                        className="device-category-search-input model-search-input w-full"
                       />
 
-                      <Button type="submit" className="!rounded-full !text-base !font-medium">
+                      <Button type="submit" className="model-search-cta !rounded-full !text-base !font-medium">
                         {getFindValueCtaLabel(deviceCategory)}
                       </Button>
                     </form>
@@ -1323,6 +1333,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                               className="model-result"
                             >
                               <span>{item.label}</span>
+                              <span className="model-result-select" aria-hidden="true">Select</span>
                             </button>
                           ))
                         ) : (
@@ -1337,8 +1348,8 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ) : null}
 
               {step === "condition" ? (
-                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center gap-5 bg-white px-5 py-8 text-center">
-                  <div className="device-preview">
+                <div className="condition-main mx-auto flex w-full max-w-[402px] flex-col items-center gap-5 bg-white px-5 py-8 text-center">
+                  <div className="condition-layout flex w-full flex-col items-center gap-5">
                     <Image
                       src={getDeviceImageSrc(selectedModel ?? { category: deviceCategory })}
                       alt={activeBrandModel || getCategoryLabel(deviceCategory)}
@@ -1347,48 +1358,51 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       unoptimized
                       className="device-preview-image"
                     />
-                    <div>
-                      <h2 className="device-preview-name">{activeBrandModel}</h2>
-                      <button type="button" onClick={() => setStep("model")} className="change-device-link">
-                        Change device
-                      </button>
+
+                    <div className="condition-content flex w-full flex-col items-center gap-5">
+                      <div>
+                        <h2 className="device-preview-name">{activeBrandModel}</h2>
+                        <button type="button" onClick={() => setStep("model")} className="change-device-link">
+                          Change device
+                        </button>
+                      </div>
+
+                      <div className="storage-info">
+                        <h3 className="storage-title">How would you describe its condition?</h3>
+                        <p className="storage-help">
+                          Be as accurate as you can &mdash; your final offer depends on the device matching this
+                          description.
+                        </p>
+                      </div>
+
+                      <div className="condition-options">
+                        {deviceConditions.map((item) => (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setCondition(item.key)}
+                            aria-pressed={condition === item.key}
+                            className={`condition-option-card transition ${condition === item.key ? "is-selected" : ""}`}
+                          >
+                            <span className="condition-option-title">{conditionLabels[item.key]}</span>
+                            <span className="condition-option-copy">{conditionDescriptions[item.key]}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex w-full flex-col gap-3">
+                        <button type="button" onClick={() => setStep("review")} className="storage-continue">
+                          Continue
+                        </button>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="storage-info">
-                    <h3 className="storage-title">How would you describe its condition?</h3>
-                    <p className="storage-help">
-                      Be as accurate as you can &mdash; your final offer depends on the device matching this
-                      description.
-                    </p>
-                  </div>
-
-                  <div className="condition-options">
-                    {deviceConditions.map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={() => setCondition(item.key)}
-                        aria-pressed={condition === item.key}
-                        className={`condition-option-card transition ${condition === item.key ? "is-selected" : ""}`}
-                      >
-                        <span className="condition-option-title">{conditionLabels[item.key]}</span>
-                        <span className="condition-option-copy">{conditionDescriptions[item.key]}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex w-full flex-col gap-3">
-                    <button type="button" onClick={() => setStep("review")} className="storage-continue">
-                      Continue
-                    </button>
                   </div>
                 </div>
               ) : null}
 
               {step === "storage" ? (
-                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center gap-5 bg-white px-5 py-8 text-center">
-                  <div className="device-preview">
+                <div className="storage-main mx-auto flex w-full max-w-[402px] flex-col items-center gap-5 bg-white px-5 py-8 text-center">
+                  <div className="storage-layout flex w-full flex-col items-center gap-5">
                     <Image
                       src={getDeviceImageSrc(selectedModel ?? { category: deviceCategory })}
                       alt={activeBrandModel || getCategoryLabel(deviceCategory)}
@@ -1397,131 +1411,141 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       unoptimized
                       className="device-preview-image"
                     />
-                    <div>
-                      <h2 className="device-preview-name">{activeBrandModel}</h2>
-                      <button type="button" onClick={() => setStep("model")} className="change-device-link">
-                        Change device
-                      </button>
+
+                    <div className="storage-content flex w-full flex-col items-center gap-5">
+                      <div>
+                        <h2 className="device-preview-name">{activeBrandModel}</h2>
+                        <button type="button" onClick={() => setStep("model")} className="change-device-link">
+                          Change device
+                        </button>
+                      </div>
+
+                      <div className="storage-info">
+                        <h3 className="storage-title">Confirm the exact storage size</h3>
+                        <p className="storage-help">
+                          Check Settings &gt; General &gt; About to confirm the storage size of your {activeBrandModel}.
+                        </p>
+                      </div>
+
+                      <div className="storage-options">
+                        {storageChoices.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => setSelectedStorage(option)}
+                            aria-pressed={selectedStorage === option}
+                            className={`storage-option ${selectedStorage === option ? "is-selected" : ""}`}
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="storage-actions flex w-full flex-col gap-3">
+                        <button type="button" onClick={() => setStep("model")} className="storage-change">
+                          Change device
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!selectedStorage}
+                          onClick={() => setStep("condition")}
+                          className="storage-continue disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Continue
+                        </button>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="storage-info">
-                    <h3 className="storage-title">Confirm the exact storage size</h3>
-                    <p className="storage-help">
-                      Check Settings &gt; General &gt; About to confirm the storage size of your {activeBrandModel}.
-                    </p>
-                  </div>
-
-                  <div className="storage-options">
-                    {storageChoices.map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => setSelectedStorage(option)}
-                        aria-pressed={selectedStorage === option}
-                        className={`storage-option ${selectedStorage === option ? "is-selected" : ""}`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex w-full flex-col gap-3">
-                    <button
-                      type="button"
-                      disabled={!selectedStorage}
-                      onClick={() => setStep("condition")}
-                      className="storage-continue disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Continue
-                    </button>
                   </div>
                 </div>
               ) : null}
 
               {step === "review" ? (
-                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center gap-5 bg-white px-5 py-8 text-center">
-                  <div className="device-preview">
-                    <div className="relative">
-                      <Image
-                        src={getDeviceImageSrc(selectedModel ?? { category: deviceCategory })}
-                        alt={activeBrandModel || getCategoryLabel(deviceCategory)}
-                        width={200}
-                        height={228}
-                        unoptimized
-                        className="device-preview-image"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setEditOpen(true)}
-                        aria-label="Edit device details"
-                        className="device-visual-edit"
-                      >
-                        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-                          <path
-                            d="M4 20l4-1 11-11-3-3L5 16l-1 4Z"
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
+                <div className="value-main mx-auto flex w-full max-w-[402px] flex-col items-center gap-5 bg-white px-5 py-8 text-center">
+                  <div className="value-layout flex w-full flex-col items-center gap-5">
+                    <div className="device-preview">
+                      <div className="relative">
+                        <Image
+                          src={getDeviceImageSrc(selectedModel ?? { category: deviceCategory })}
+                          alt={activeBrandModel || getCategoryLabel(deviceCategory)}
+                          width={200}
+                          height={228}
+                          unoptimized
+                          className="device-preview-image device-image"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditOpen(true)}
+                          aria-label="Edit device details"
+                          className="device-visual-edit"
+                        >
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+                            <path
+                              d="M4 20l4-1 11-11-3-3L5 16l-1 4Z"
+                              stroke="currentColor"
+                              strokeWidth="1.6"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="selected-device-copy">
-                    <h2 className="selected-device-title">Your {activeBrandModel} is selected</h2>
-                    <p className="selected-device-help">We&apos;ve saved your device, storage and condition.</p>
-                  </div>
+                    <div className="value-content flex w-full flex-col items-center gap-5">
+                      <div className="selected-device-copy">
+                        <h2 className="selected-device-title">Your {activeBrandModel} is selected</h2>
+                        <p className="selected-device-help">We&apos;ve saved your device, storage and condition.</p>
+                      </div>
 
-                  <div className="price-info">
-                    <h3 className="price-title">How much would you like to sell for?</h3>
-                    <p className="price-help">
-                      Type your desired price below. If you&apos;re not sure, you can skip this step and
-                      continue.
-                    </p>
-                  </div>
+                      <div className="price-info">
+                        <h3 className="price-title">How much would you like to sell for?</h3>
+                        <p className="price-help">
+                          Type your desired price below. If you&apos;re not sure, you can skip this step and
+                          continue.
+                        </p>
+                      </div>
 
-                  <label htmlFor="requested-amount" className="sr-only">
-                    Desired price
-                  </label>
-                  <input
-                    id="requested-amount"
-                    type="number"
-                    min="1"
-                    step="1"
-                    inputMode="numeric"
-                    value={requestedAmount}
-                    onChange={(event) => setRequestedAmount(event.target.value)}
-                    placeholder="£100"
-                    className="price-input"
-                  />
+                      <label htmlFor="requested-amount" className="sr-only">
+                        Desired price
+                      </label>
+                      <input
+                        id="requested-amount"
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputMode="numeric"
+                        value={requestedAmount}
+                        onChange={(event) => setRequestedAmount(event.target.value)}
+                        placeholder="£100"
+                        className="price-input"
+                      />
 
-                  <div className="value-actions">
-                    <button
-                      type="button"
-                      disabled={quoteLoading}
-                      onClick={() => submitAmount("sell")}
-                      className="value-continue disabled:cursor-not-allowed"
-                    >
-                      {quoteLoading ? "Working it out..." : "Continue"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={quoteLoading}
-                      onClick={() => submitAmount("unsure")}
-                      className="value-unsure disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      I&apos;m not sure
-                    </button>
+                      <div className="value-actions">
+                        <button
+                          type="button"
+                          disabled={quoteLoading}
+                          onClick={() => submitAmount("sell")}
+                          className="value-continue disabled:cursor-not-allowed"
+                        >
+                          {quoteLoading ? "Working it out..." : "Continue"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={quoteLoading}
+                          onClick={() => submitAmount("unsure")}
+                          className="value-unsure disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          I&apos;m not sure
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : null}
 
               {step === "congrats" && quote ? (
-                <div className="relative mx-auto flex w-full max-w-[420px] flex-col items-center overflow-hidden rounded-[36px] bg-white px-6 py-10 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
+                <div className="relative mx-auto flex w-full max-w-[420px] flex-col items-center overflow-hidden rounded-[36px] bg-white px-6 py-10 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[560px] lg:px-16 lg:py-16">
                   <Confetti />
-                  <div className="device-visual">
+                  <div className="device-visual lg:scale-125">
                     <Image
                       src={getDeviceImageSrc(quote)}
                       alt={`${quote.brand} ${quote.model} placeholder`}
@@ -1530,18 +1554,18 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       unoptimized
                     />
                   </div>
-                  <h2 className="mt-6 font-sans text-[26px] font-normal leading-[1.3] text-[#1D1D1F]">
+                  <h2 className="mt-6 font-sans text-[26px] font-normal leading-[1.3] text-[#1D1D1F] lg:mt-10 lg:text-[34px]">
                     Congratulations!
                   </h2>
-                  <p className="mt-2 max-w-[340px] text-[16px] leading-6 text-[#6E6E73]">
+                  <p className="mt-2 max-w-[340px] text-[16px] leading-6 text-[#6E6E73] lg:max-w-[420px] lg:text-[18px]">
                     Your {quote.brand} {quote.model} is sold for up to
                   </p>
-                  <div className="guide-price mt-2">{formatCurrency(quote.cashOfferGbp)}</div>
-                  <p className="mt-3 max-w-[340px] text-[13px] leading-5 text-[#6E6E73]">
+                  <div className="guide-price mt-2 lg:text-[48px]">{formatCurrency(quote.cashOfferGbp)}</div>
+                  <p className="mt-3 max-w-[340px] text-[13px] leading-5 text-[#6E6E73] lg:max-w-[420px] lg:text-[14px]">
                     Every seller gets a free spin! Play our prize wheel for a bonus voucher, cash top-up,
                     or mystery bag worth up to £600.
                   </p>
-                  <div className="mt-6 flex w-full flex-col gap-3">
+                  <div className="mt-6 flex w-full flex-col gap-3 lg:mt-10 lg:max-w-[320px]">
                     <Button type="button" onClick={startSpin} className="w-full">
                       Spin the wheel
                     </Button>
@@ -1550,8 +1574,8 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ) : null}
 
               {step === "checkout" && quote ? (
-                <div className="mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
-                  <div className="mx-auto device-visual">
+                <div className="mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[560px] lg:p-14">
+                  <div className="mx-auto device-visual lg:scale-125">
                     <Image
                       src={getDeviceImageSrc(quote)}
                       alt={`${quote.brand} ${quote.model} placeholder`}
@@ -1562,7 +1586,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     <span className="device-visual-badge">Sold</span>
                   </div>
 
-                  <div className="mt-6 space-y-2 text-left">
+                  <div className="mt-6 space-y-2 text-left lg:mt-10">
                     <div className="summary-row">
                       <span className="summary-row-label">Device</span>
                       <span className="summary-row-value">{quote.brand} {quote.model}</span>
@@ -1589,8 +1613,8 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     ) : null}
                   </div>
 
-                  <div className="mt-6 text-left">
-                    <h3 className="text-base font-semibold text-[#1D1D1F]">
+                  <div className="mt-6 text-left lg:mt-10">
+                    <h3 className="text-base font-semibold text-[#1D1D1F] lg:text-lg">
                       Do you have safe packaging (e.g. the original box) to send your device in?
                     </h3>
                     <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -1606,9 +1630,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ) : null}
 
               {step === "postagePack" && quote ? (
-                <div className="mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
+                <div className="mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[560px] lg:p-14">
                   <SmallLabel>Postage pack</SmallLabel>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#1D1D1F]">
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#1D1D1F] lg:text-3xl">
                     A protective pack costs {formatCurrency(POSTAGE_PACK_COST_GBP)}
                   </h2>
                   <p className="mt-3 text-sm leading-6 text-muted">
@@ -1649,10 +1673,10 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               {step === "payout" && quote ? (
                 <form
                   onSubmit={handleConfirmTrade}
-                  className="mx-auto w-full max-w-[420px] space-y-4 rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)]"
+                  className="mx-auto w-full max-w-[420px] space-y-4 rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[720px] lg:p-14"
                 >
                   <SmallLabel>Almost there to your cash</SmallLabel>
-                  <h2 className="text-2xl font-semibold tracking-tight text-[#1D1D1F]">
+                  <h2 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] lg:text-3xl">
                     A few details to pay you
                   </h2>
 
@@ -1729,6 +1753,12 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     </span>
                   </label>
 
+                  {confirmError ? (
+                    <div className="rounded-2xl bg-[rgba(254,242,242,1)] px-4 py-3 text-sm text-[rgba(153,27,27,1)]">
+                      {confirmError}
+                    </div>
+                  ) : null}
+
                   <Button type="submit" disabled={confirmLoading || !termsAccepted} className="w-full">
                     {confirmLoading ? "Confirming..." : "Confirm"}
                   </Button>
@@ -1736,25 +1766,25 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ) : null}
 
               {step === "done" && trade && quote ? (
-                <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[36px] bg-brand p-7 text-center text-white shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
+                <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[36px] bg-brand p-7 text-center text-white shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[600px] lg:p-16">
                   <Confetti />
-                  <h2 className="text-2xl font-semibold tracking-tight">
+                  <h2 className="text-2xl font-semibold tracking-tight lg:text-[34px]">
                     That&apos;s it! Your {quote.brand} {quote.model} is now sold.
                   </h2>
-                  <p className="mt-4 text-sm leading-6 text-white/90">
+                  <p className="mt-4 text-sm leading-6 text-white/90 lg:text-base">
                     Nice one &mdash; you just supported a local British business, saved time, helped the
                     planet, and got real money for a device that would otherwise sit in a drawer.
                   </p>
-                  <p className="mt-4 text-sm leading-6 text-white/90">
+                  <p className="mt-4 text-sm leading-6 text-white/90 lg:text-base">
                     Our team will get in touch to confirm your device and settle funds directly to the bank
                     details you provided. Reference:{" "}
                     <span className="font-semibold">{trade.tradeReferenceId}</span>
                   </p>
-                  <div className="mt-6 rounded-2xl bg-white/10 p-4 text-left text-xs leading-5 text-white">
+                  <div className="mt-6 rounded-2xl bg-white/10 p-4 text-left text-xs leading-5 text-white lg:mt-10 lg:p-6 lg:text-sm">
                     We will never call you to ask for your bank card details, ask you to move funds into
                     another account, or ask for any payment before we pay you.
                   </div>
-                  <Button type="button" variant="secondary" onClick={cancelJourney} className="mt-6 !bg-white !text-brand w-full">
+                  <Button type="button" variant="secondary" onClick={cancelJourney} className="mt-6 !bg-white !text-brand w-full lg:mt-10 lg:max-w-[320px] lg:mx-auto">
                     Start another quote
                   </Button>
                 </div>
@@ -1783,6 +1813,12 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     <SpinWheelSvg rotation={spinRotation} />
                     <div className="spin-pointer" />
                   </div>
+
+                  {spinError ? (
+                    <div className="w-full rounded-2xl bg-[rgba(254,242,242,1)] px-4 py-3 text-sm text-[rgba(153,27,27,1)]">
+                      {spinError}
+                    </div>
+                  ) : null}
 
                   <div className="spin-actions">
                     <button type="button" disabled={spinning || rewardLoading} onClick={playSpin} className="spin-button disabled:cursor-not-allowed">

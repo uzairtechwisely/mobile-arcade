@@ -1,3 +1,18 @@
+import { ZodError } from "zod";
+
+// Turns a thrown validation/service error into a short, human-readable
+// message safe to show a customer — never Zod's raw JSON issue dump.
+export function formatServiceError(error: unknown, fallback: string): string {
+  if (error instanceof ZodError) {
+    const first = error.issues[0];
+    return first?.message && first.message !== "Invalid input" ? first.message : fallback;
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
+
 export const deviceCategories = [
   { key: "phone", label: "Phone" },
   { key: "laptop", label: "Laptop" },

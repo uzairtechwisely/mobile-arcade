@@ -43,21 +43,24 @@ const rewardInputSchema = z.object({
 const confirmTradeSchema = z
   .object({
     quoteId: z.string().min(1),
-    customerName: z.string().trim().min(2),
-    customerEmail: z.email(),
+    customerName: z.string().trim().min(2, "Please enter your full name."),
+    customerEmail: z.email("Please enter a valid email address."),
     customerMobile: z
       .string()
       .trim()
-      .min(10)
-      .max(20)
-      .regex(/^[0-9+\s()\-]+$/),
-    collectionAddress: z.string().trim().min(10),
-    bankAccountName: z.string().trim().min(2),
+      .min(10, "Please enter a valid mobile number.")
+      .max(20, "Please enter a valid mobile number.")
+      .regex(/^[0-9+\s()\-]+$/, "Please enter a valid mobile number."),
+    collectionAddress: z.string().trim().min(10, "Please enter your full address."),
+    bankAccountName: z.string().trim().min(2, "Please enter the account holder's name."),
     bankSortCode: z
       .string()
       .trim()
-      .regex(/^\d{2}-?\d{2}-?\d{2}$/),
-    bankAccountNumber: z.string().trim().regex(/^\d{6,8}$/),
+      .regex(/^\d{2}-?\d{2}-?\d{2}$/, "Please enter a valid UK sort code, e.g. 12-34-56."),
+    bankAccountNumber: z
+      .string()
+      .trim()
+      .regex(/^\d{6,8}$/, "Please enter a valid UK bank account number."),
     hasOwnPackaging: z.boolean(),
     postagePackStripePaymentIntentId: z.string().trim().min(1).optional(),
     termsAccepted: z.literal(true),

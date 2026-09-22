@@ -699,6 +699,12 @@ textarea:focus-visible {
   color: var(--ma-white);
 }
 
+/* Desktop-only duplicate of the "Change device" link, shown as a full
+   button next to Continue — hidden on mobile where the link above suffices. */
+.storage-change {
+  display: none;
+}
+
 .model-results {
   width: 100%;
   max-width: 320px;
@@ -731,6 +737,10 @@ textarea:focus-visible {
 .model-result:first-child {
   font-weight: 500;
   font-size: 14px;
+}
+
+.model-result-select {
+  display: none;
 }
 
 .journey-close {
@@ -1365,13 +1375,13 @@ textarea:focus-visible {
    Reference: 1440px Figma export, built responsive rather than fixed-width. */
 @media (min-width: 1024px) {
   .ma-header {
-    min-height: 80px;
+    min-height: 88px;
     padding: 0 80px;
   }
 
   .ma-header-logo {
-    width: 152px;
-    height: 37px;
+    width: 216px;
+    height: 53px;
   }
 
   .landing-hero {
@@ -1548,5 +1558,272 @@ textarea:focus-visible {
   .footer-contact {
     flex-direction: row;
     gap: 28px;
+  }
+
+  /* ---- Trade-in journey progress strip ---- */
+  .tradein-progress {
+    min-height: 80px;
+    gap: 28px;
+    padding: 0 80px;
+  }
+
+  .tradein-progress-step {
+    gap: 8px;
+    font-size: 14px;
+    line-height: 18px;
+  }
+
+  .tradein-progress-step.is-active {
+    font-weight: 600;
+  }
+
+  /* ---- Value (desired price) screen: image left, details right ---- */
+  .value-main {
+    max-width: none;
+    min-height: 690px;
+    padding: 80px;
+  }
+
+  .value-layout {
+    max-width: 958px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 56px;
+  }
+
+  .value-layout .device-preview {
+    flex: none;
+    width: 323px;
+    height: 483px;
+  }
+
+  .value-layout .device-preview .relative {
+    width: 323px;
+    height: 483px;
+  }
+
+  .value-layout .device-image {
+    width: 323px;
+    height: 483px;
+    flex: none;
+  }
+
+  .value-content {
+    width: 640px;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .value-content .selected-device-title,
+  .value-content .selected-device-help,
+  .value-content .price-title,
+  .value-content .price-help {
+    text-align: left;
+  }
+
+  .price-input {
+    width: 548px;
+  }
+
+  .value-actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .value-continue,
+  .value-unsure {
+    width: auto;
+  }
+
+  /* ---- Spin-the-wheel modal: scale up for desktop viewport ---- */
+  .spin-modal {
+    max-width: 480px;
+  }
+
+  .spin-modal-inner {
+    padding: 56px 40px;
+    gap: 28px;
+  }
+
+  .spin-title {
+    font-size: 32px;
+    line-height: 32px;
+  }
+
+  .spin-help {
+    font-size: 15px;
+  }
+
+  .spin-wheel-wrap {
+    max-width: 360px;
+  }
+
+  /* ---- Model search screen ---- */
+  .model-search-main {
+    max-width: none;
+    min-height: 697px;
+    padding: 96px 80px;
+    gap: 40px;
+  }
+
+  .model-search-title {
+    max-width: 796px;
+    font-size: 48px;
+    line-height: 60px;
+  }
+
+  .model-search-help {
+    max-width: none;
+  }
+
+  .model-search-controls {
+    max-width: none;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .model-search-input {
+    width: 548px;
+    flex: none;
+  }
+
+  .model-search-cta {
+    padding: 0 32px !important;
+  }
+
+  .model-results {
+    max-width: 680px;
+  }
+
+  .model-result-select {
+    display: inline;
+    font: 600 14px/20px var(--ma-font-ui);
+    color: var(--ma-blue);
+  }
+
+  /* ---- Storage screen: image left, details right ---- */
+  .storage-main {
+    max-width: none;
+    min-height: 690px;
+    padding: 80px;
+  }
+
+  .storage-layout {
+    max-width: 958px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 56px;
+  }
+
+  .storage-layout .device-preview-image {
+    width: 323px;
+    height: 483px;
+    flex: none;
+  }
+
+  .storage-content {
+    width: 640px;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .storage-content .device-preview-name {
+    font-size: 48px;
+    line-height: 60px;
+    text-align: left;
+  }
+
+  .storage-options {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .storage-option {
+    width: auto;
+    min-height: 56px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .storage-actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .storage-continue {
+    width: auto;
+  }
+
+  .storage-change {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 16px 32px;
+    background: var(--ma-white);
+    border: 1px solid var(--ma-dark);
+    border-radius: 9999px;
+    font: 500 16px/20px var(--ma-font-ui);
+    color: var(--ma-dark);
+  }
+
+  .storage-title {
+    font-size: 24px;
+    line-height: 28px;
+  }
+
+  /* ---- Condition screen: same image-left/details-right layout as storage ---- */
+  .condition-main {
+    max-width: none;
+    min-height: 690px;
+    padding: 80px;
+  }
+
+  .condition-layout {
+    max-width: 958px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 56px;
+  }
+
+  .condition-layout .device-preview-image {
+    width: 323px;
+    height: 483px;
+    flex: none;
+  }
+
+  .condition-content {
+    width: 640px;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .condition-content .device-preview-name {
+    font-size: 48px;
+    line-height: 60px;
+    text-align: left;
+  }
+
+  /* Screenshot shows a 2-column grid, not the flex-column the spec text says */
+  .condition-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 20px;
+    width: 100%;
+  }
+
+  .condition-option-card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .condition-content .storage-continue {
+    width: auto;
   }
 }

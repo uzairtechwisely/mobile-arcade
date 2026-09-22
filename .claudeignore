@@ -1,0 +1,46 @@
+# Block heavy dependencies and build outputs from the context loop
+node_modules/
+.next/
+dist/
+build/
+.git/
+*.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build/type-check caches (regenerated automatically, never useful to read)
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+.vercel/
+coverage/
+.turbo/
+
+# Local database — binary/runtime data, not source
+.data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets — never load env values into context
+.env
+.env.local
+.env.*.local
+
+# OS/editor noise
+.DS_Store
+**/.DS_Store
+.vscode/
+.idea/
+
+# Binary/static assets — fonts, images, icons (not source, just bulk)
+public/**/*.otf
+public/**/*.ttf
+public/**/*.woff
+public/**/*.woff2
+public/**/*.png
+public/**/*.jpg
+public/**/*.jpeg
+public/**/*.webp
+public/**/*.ico
+public/**/*.svg

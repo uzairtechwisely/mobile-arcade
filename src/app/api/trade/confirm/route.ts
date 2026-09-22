@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { confirmTrade } from "@/lib/trade/service";
+import { formatServiceError } from "@/lib/trade/shared";
 
 export async function POST(request: Request) {
   try {
@@ -7,8 +8,7 @@ export async function POST(request: Request) {
     const trade = await confirmTrade(body);
     return NextResponse.json({ trade });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unable to confirm trade.";
+    const message = formatServiceError(error, "We could not confirm your trade. Please check your details and try again.");
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

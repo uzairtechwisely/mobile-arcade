@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import Stripe from "stripe";
-import { POSTAGE_PACK_COST_GBP } from "@/lib/trade/shared";
+import { POSTAGE_PACK_COST_GBP, formatServiceError } from "@/lib/trade/shared";
 
 const bodySchema = z.object({
   quoteId: z.string().min(1),
@@ -50,8 +50,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ checkoutUrl: session.url });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unable to start postage pack payment.";
+    const message = formatServiceError(error, "Unable to start postage pack payment.");
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

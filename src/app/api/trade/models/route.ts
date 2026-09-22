@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { searchDeviceModels } from "@/lib/trade/service";
+import { formatServiceError } from "@/lib/trade/shared";
 
 const searchSchema = z.object({
   category: z.enum(["phone", "laptop", "tablet", "gaming_device"]),
@@ -18,8 +19,7 @@ export async function GET(request: Request) {
     const models = await searchDeviceModels(input.category, input.query);
     return NextResponse.json({ models });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unable to search devices.";
+    const message = formatServiceError(error, "Unable to search devices.");
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
