@@ -2,6 +2,10 @@
 
 :root {
   --ma-blue: #006afc;
+  /* Secondary accent reserved for gamification/reward moments (spin wheel),
+     confirmed across two separate Figma exports — not a substitute for
+     --ma-blue elsewhere in the app. */
+  --ma-purple: #3c2a68;
   --ma-black: #070707;
   --ma-dark: #1d1d1f;
   --ma-grey: #6e6e73;
@@ -221,40 +225,6 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.text-choice {
-  width: 100%;
-  padding: 20px 22px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  background: #ffffff;
-  border: 1px solid #e8e8ed;
-  border-radius: 16px;
-  text-align: left;
-}
-
-.text-choice.is-selected,
-.text-choice[aria-pressed="true"] {
-  border: 2px solid #006afc;
-}
-
-.text-choice-title {
-  font-family: var(--ma-font-ui);
-  font-size: 17px;
-  line-height: 21px;
-  font-weight: 600;
-  color: #1d1d1f;
-}
-
-.text-choice-description {
-  font-family: var(--ma-font-ui);
-  font-size: 13px;
-  line-height: 16px;
-  font-weight: 400;
-  color: #6e6e73;
 }
 
 .pill-choice-group {
@@ -488,8 +458,19 @@ textarea:focus-visible {
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+  border: 0;
+  background: none;
+  padding: 4px 2px;
   font: 500 10px/12px var(--ma-font-ui);
   color: var(--ma-placeholder);
+}
+
+.tradein-progress-step.is-active:not(:disabled) {
+  cursor: pointer;
+}
+
+.tradein-progress-step:disabled {
+  cursor: default;
 }
 
 .tradein-progress-dot {
@@ -583,6 +564,130 @@ textarea:focus-visible {
   color: var(--ma-blue);
 }
 
+.condition-option-card {
+  width: 100%;
+  min-height: 96px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 6px;
+  background: var(--ma-white);
+  border: 1px solid var(--ma-divider);
+  border-radius: 16px;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.15);
+  text-align: left;
+}
+
+.condition-option-title {
+  font: 600 16px/20px var(--ma-font-ui);
+  color: var(--ma-dark);
+}
+
+.condition-option-copy {
+  font: 400 12px/16px var(--ma-font-ui);
+  color: var(--ma-grey);
+}
+
+.condition-option-card.is-selected {
+  border-color: var(--ma-blue);
+}
+
+.condition-option-card.is-selected .condition-option-title,
+.condition-option-card.is-selected .condition-option-copy {
+  color: var(--ma-blue);
+}
+
+.selected-device-copy {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.selected-device-title {
+  margin: 0;
+  font: 500 24px/28px var(--ma-font-display);
+  color: var(--ma-dark);
+}
+
+.selected-device-help {
+  margin: 0;
+  font: 400 16px/20px var(--ma-font-ui);
+  letter-spacing: -0.01em;
+  color: var(--ma-grey);
+}
+
+.price-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.price-title {
+  margin: 0;
+  font: 500 16px/24px var(--ma-font-display);
+  color: var(--ma-dark);
+}
+
+.price-help {
+  margin: 0;
+  font: 400 14px/16px var(--ma-font-ui);
+  color: var(--ma-grey);
+}
+
+.price-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid var(--ma-black);
+  border-radius: 9999px;
+  background: var(--ma-white);
+  font: 500 14px/28px var(--ma-font-ui);
+  color: var(--ma-dark);
+}
+
+.price-input::placeholder {
+  color: var(--ma-placeholder);
+}
+
+.value-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.value-continue,
+.value-unsure {
+  width: 100%;
+  min-height: 52px;
+  padding: 16px 32px;
+  border-radius: 9999px;
+  font: 500 16px/20px var(--ma-font-ui);
+}
+
+.value-continue {
+  border: 0;
+  background: var(--ma-blue);
+  color: var(--ma-white);
+}
+
+.value-continue:disabled {
+  opacity: 0.6;
+}
+
+.value-unsure {
+  background: var(--ma-white);
+  border: 1px solid var(--ma-black);
+  color: var(--ma-black);
+}
+
 .storage-continue {
   width: 100%;
   min-height: 52px;
@@ -633,7 +738,7 @@ textarea:focus-visible {
   top: 12px;
   z-index: 30;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   width: 100%;
   padding: 0 var(--mobile-pad);
 }
@@ -649,46 +754,6 @@ textarea:focus-visible {
   border: 1px solid var(--ma-border);
   color: var(--ma-dark);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-}
-
-.colour-swatch-group {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-}
-
-.colour-swatch {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  background: none;
-}
-
-.colour-swatch-dot {
-  height: 40px;
-  width: 40px;
-  border-radius: 9999px;
-  border: 1px solid var(--ma-border);
-  box-shadow: inset 0 0 0 2px var(--ma-white);
-}
-
-.colour-swatch.is-selected .colour-swatch-dot {
-  box-shadow:
-    inset 0 0 0 2px var(--ma-white),
-    0 0 0 2px var(--ma-blue);
-}
-
-.colour-swatch-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ma-grey);
-}
-
-.colour-swatch.is-selected .colour-swatch-label {
-  color: var(--ma-blue);
 }
 
 .device-visual {
@@ -788,48 +853,103 @@ textarea:focus-visible {
   font-weight: 500;
 }
 
-.spin-wheel-outer {
-  position: relative;
-  height: 280px;
-  width: 280px;
-  margin-inline: auto;
+.spin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 64px 20px;
+  background: rgba(0, 0, 0, 0.4);
 }
 
-.spin-wheel-pointer {
-  position: absolute;
-  left: 50%;
-  top: -6px;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 12px solid transparent;
-  border-right: 12px solid transparent;
-  border-top: 20px solid var(--ma-blue);
-  z-index: 2;
+.spin-modal {
+  width: 100%;
+  max-width: 402px;
+  max-height: calc(100vh - 128px);
+  overflow-y: auto;
+  background: var(--ma-white);
+  border-radius: 24px;
+}
+
+.spin-modal-inner {
+  width: 100%;
+  padding: 48px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.spin-copy {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.spin-title {
+  margin: 0;
+  font: 500 28px/28px var(--ma-font-display);
+  text-align: center;
+  color: var(--ma-dark);
+}
+
+.spin-help {
+  margin: 0;
+  font: 400 14px/20px var(--ma-font-ui);
+  text-align: center;
+  color: var(--ma-grey);
+}
+
+.spin-wheel-wrap {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .spin-wheel {
-  height: 100%;
-  width: 100%;
-  border-radius: 9999px;
-  border: 6px solid var(--ma-blue);
-  position: relative;
-  overflow: hidden;
-  background: var(--ma-white);
+  border-radius: 50%;
   transition: transform 4.2s cubic-bezier(0.12, 0.72, 0.15, 1);
 }
 
-.spin-wheel-segment {
-  position: absolute;
-  inset: 0;
+.spin-pointer {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  margin-left: -24px;
+  border-radius: 50%;
+  background: var(--ma-purple);
+  border: 1px solid #000000;
+  z-index: 2;
+}
+
+.spin-actions {
+  width: 100%;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 14px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ma-blue);
-  text-align: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.spin-button {
+  width: 100%;
+  max-width: 320px;
+  min-height: 52px;
+  padding: 16px 32px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--ma-purple);
+  color: var(--ma-white);
+  font: 500 16px/20px var(--ma-font-ui);
+}
+
+.spin-button:disabled {
+  opacity: 0.6;
 }
 
 .device-category-helper {
@@ -1237,5 +1357,196 @@ textarea:focus-visible {
 @media (min-width: 768px) {
   .ma-container {
     padding-inline: 32px;
+  }
+}
+
+/* ================= DESKTOP LANDING PAGE (>=1024px) =================
+   Layout/scale only — mobile styles above stay untouched below 1024px.
+   Reference: 1440px Figma export, built responsive rather than fixed-width. */
+@media (min-width: 1024px) {
+  .ma-header {
+    min-height: 80px;
+    padding: 0 80px;
+  }
+
+  .ma-header-logo {
+    width: 152px;
+    height: 37px;
+  }
+
+  .landing-hero {
+    padding: 96px 80px 40px;
+  }
+
+  .landing-hero-inner {
+    max-width: 1038px;
+    gap: 32px;
+  }
+
+  .landing-hero h1 {
+    max-width: none;
+    font-size: 60px;
+    line-height: 60px;
+  }
+
+  .landing-hero p {
+    max-width: none;
+    font-size: 24px;
+    line-height: 36px;
+  }
+
+  .device-category-section {
+    padding: 0 80px 96px;
+    gap: 32px;
+  }
+
+  .device-category-title {
+    max-width: none;
+    font-size: 30px;
+    line-height: 40px;
+  }
+
+  .device-category-list {
+    max-width: none;
+    width: auto;
+    flex-wrap: wrap;
+    gap: 80px;
+  }
+
+  .device-category {
+    width: 176px;
+    max-width: none;
+    min-height: auto;
+    padding: 20px 0;
+  }
+
+  .device-category-label {
+    width: auto;
+    font-size: 20px;
+    line-height: 36px;
+  }
+
+  .tradein-promo-section {
+    padding: 80px;
+  }
+
+  .tradein-promo {
+    max-width: none;
+    min-height: 520px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 64px;
+    padding: 64px 80px;
+  }
+
+  .tradein-promo-copy {
+    width: 566px;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .tradein-promo-title {
+    font-size: 60px;
+    line-height: 52px;
+    text-align: left;
+  }
+
+  .tradein-promo-cta {
+    padding: 0 40px;
+    font-size: 18px;
+    line-height: 28px;
+  }
+
+  .tradein-promo-image {
+    position: static;
+    width: 522px;
+    height: 401px;
+    transform: none;
+  }
+
+  .steps-section {
+    padding: 80px;
+    gap: 64px;
+  }
+
+  .steps-heading {
+    max-width: none;
+  }
+
+  .steps-heading h2 {
+    font-size: 48px;
+    line-height: 60px;
+  }
+
+  .steps-heading p {
+    font-size: 20px;
+    line-height: 24px;
+  }
+
+  .steps-list {
+    max-width: none;
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    gap: 48px;
+  }
+
+  .step-card {
+    width: 378px;
+    flex: none;
+  }
+
+  .faq-section {
+    padding: 80px;
+  }
+
+  .faq-inner {
+    max-width: none;
+  }
+
+  .faq-title {
+    margin-bottom: 64px;
+    font-size: 40px;
+    line-height: 40px;
+  }
+
+  .faq-answer {
+    max-width: 851px;
+  }
+
+  .ma-footer {
+    padding: 80px;
+  }
+
+  .ma-footer-inner {
+    max-width: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .ma-footer-inner > div:first-child {
+    width: 384px;
+  }
+
+  .footer-group {
+    flex: 1;
+    min-width: 160px;
+    gap: 20px;
+  }
+
+  .footer-bottom {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+  }
+
+  .footer-contact {
+    flex-direction: row;
+    gap: 28px;
   }
 }

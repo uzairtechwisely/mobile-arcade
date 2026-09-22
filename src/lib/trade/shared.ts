@@ -12,8 +12,8 @@ export const deviceConditions = [
   { key: "excellent", label: "Excellent" },
   { key: "good", label: "Good" },
   { key: "fair", label: "Fair" },
-  { key: "cracked_working", label: "Cracked Working" },
-  { key: "cracked_not_working", label: "Cracked Not Working" },
+  { key: "cracked_working", label: "Cracked but working" },
+  { key: "cracked_not_working", label: "Cracked and not working" },
 ] as const;
 
 export type DeviceCondition = (typeof deviceConditions)[number]["key"];
@@ -23,8 +23,8 @@ export const conditionLabels: Record<DeviceCondition, string> = {
   excellent: "Excellent",
   good: "Good",
   fair: "Fair",
-  cracked_working: "Cracked Working",
-  cracked_not_working: "Cracked Not Working",
+  cracked_working: "Cracked but working",
+  cracked_not_working: "Cracked and not working",
 };
 
 export type RewardSummary = {
@@ -67,38 +67,6 @@ export type TradeConfirmation = {
   postageReimbursementGbp: number;
   expectedPayoutOnReceiptGbp: number;
   reward: RewardSummary | null;
-};
-
-export const colourPalette: Record<DeviceCategory, Array<{ key: string; label: string; swatch: string }>> = {
-  phone: [
-    { key: "black", label: "Black", swatch: "#1D1D1F" },
-    { key: "white", label: "White", swatch: "#F5F5F7" },
-    { key: "silver", label: "Silver", swatch: "#C7C9CC" },
-    { key: "gold", label: "Gold", swatch: "#E4C89C" },
-    { key: "blue", label: "Blue", swatch: "#3385FD" },
-    { key: "pink", label: "Pink", swatch: "#F1B8C4" },
-    { key: "green", label: "Green", swatch: "#7FA98B" },
-    { key: "purple", label: "Purple", swatch: "#8C7FB5" },
-  ],
-  tablet: [
-    { key: "black", label: "Black", swatch: "#1D1D1F" },
-    { key: "white", label: "White", swatch: "#F5F5F7" },
-    { key: "silver", label: "Silver", swatch: "#C7C9CC" },
-    { key: "gold", label: "Gold", swatch: "#E4C89C" },
-    { key: "blue", label: "Blue", swatch: "#3385FD" },
-  ],
-  laptop: [
-    { key: "space_grey", label: "Space Grey", swatch: "#6E6E73" },
-    { key: "silver", label: "Silver", swatch: "#C7C9CC" },
-    { key: "gold", label: "Gold", swatch: "#E4C89C" },
-    { key: "black", label: "Black", swatch: "#1D1D1F" },
-  ],
-  gaming_device: [
-    { key: "black", label: "Black", swatch: "#1D1D1F" },
-    { key: "white", label: "White", swatch: "#F5F5F7" },
-    { key: "blue", label: "Blue", swatch: "#3385FD" },
-    { key: "red", label: "Red", swatch: "#D65B5B" },
-  ],
 };
 
 export const POSTAGE_PACK_COST_GBP = 8;

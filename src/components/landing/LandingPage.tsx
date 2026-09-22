@@ -6,7 +6,6 @@ import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { type LandingPageConfig } from "@/lib/landing-pages";
 import {
-  colourPalette,
   conditionLabels,
   deviceConditions,
   formatCurrency,
@@ -31,15 +30,47 @@ type DeviceSuggestion = {
 
 type JourneyStep =
   | "model"
-  | "condition"
   | "storage"
-  | "colour"
+  | "condition"
   | "review"
   | "congrats"
   | "checkout"
   | "postagePack"
   | "payout"
   | "done";
+
+// Condenses the granular JourneyStep screens into the 5 stages shown in the
+// progress strip — several screens can share one stage label.
+type ProgressStage = "device" | "condition" | "value" | "checkout" | "done";
+
+const STEP_STAGE: Record<JourneyStep, ProgressStage> = {
+  model: "device",
+  storage: "device",
+  condition: "condition",
+  review: "value",
+  congrats: "value",
+  checkout: "checkout",
+  postagePack: "checkout",
+  payout: "checkout",
+  done: "done",
+};
+
+const STAGE_ORDER: ProgressStage[] = ["device", "condition", "value", "checkout", "done"];
+const STAGE_LABELS: Record<ProgressStage, string> = {
+  device: "Device",
+  condition: "Condition",
+  value: "Value",
+  checkout: "Checkout",
+  done: "Done",
+};
+// Clicking a stage in the progress strip jumps to the first screen of that stage.
+const STAGE_ENTRY_STEP: Record<ProgressStage, JourneyStep> = {
+  device: "model",
+  condition: "condition",
+  value: "review",
+  checkout: "checkout",
+  done: "done",
+};
 
 const devicePlaceholderSrc: Record<DeviceCategory, string> = {
   phone: "/brand/placeholders/device-phone.svg",
@@ -157,29 +188,6 @@ const conditionDescriptions: Record<DeviceCondition, string> = {
   cracked_not_working: "Device does not power on or has major functional issues.",
 };
 
-const STEP_ORDER: JourneyStep[] = [
-  "model",
-  "storage",
-  "condition",
-  "colour",
-  "review",
-  "congrats",
-  "checkout",
-  "payout",
-  "done",
-];
-const STEP_LABELS: Record<JourneyStep, string> = {
-  model: "Device",
-  condition: "Condition",
-  storage: "Storage",
-  colour: "Colour",
-  review: "Review",
-  congrats: "Reward",
-  checkout: "Checkout",
-  postagePack: "Checkout",
-  payout: "Payout",
-  done: "Done",
-};
 
 function getModelStepTitle(category: DeviceCategory) {
   if (category === "phone") return "Which phone are you trading in?";
@@ -215,27 +223,33 @@ function Confetti() {
   );
 }
 
-function TradeInProgress({ step }: { step: JourneyStep }) {
-  const displayStep = step === "postagePack" ? "checkout" : step;
-  const activeRef = useRef<HTMLDivElement | null>(null);
+function TradeInProgress({ step, onNavigate }: { step: JourneyStep; onNavigate: (step: JourneyStep) => void }) {
+  const activeStage = STEP_STAGE[step];
+  const activeIndex = STAGE_ORDER.indexOf(activeStage);
+  const activeRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  }, [displayStep]);
+  }, [activeStage]);
 
   return (
     <div className="tradein-progress">
-      {STEP_ORDER.map((s) => {
-        const active = s === displayStep;
+      {STAGE_ORDER.map((stage, i) => {
+        const active = stage === activeStage;
+        const reached = i <= activeIndex;
         return (
-          <div
-            key={s}
+          <button
+            key={stage}
+            type="button"
             ref={active ? activeRef : undefined}
-            className={`tradein-progress-step ${active ? "is-active" : ""}`}
+            disabled={!reached}
+            onClick={() => onNavigate(STAGE_ENTRY_STEP[stage])}
+            aria-current={active ? "step" : undefined}
+            className={`tradein-progress-step ${reached ? "is-active" : ""}`}
           >
             <span className="tradein-progress-dot" />
-            <span>{STEP_LABELS[s]}</span>
-          </div>
+            <span>{STAGE_LABELS[stage]}</span>
+          </button>
         );
       })}
     </div>
@@ -610,7 +624,75 @@ function resolveSupportModal(error: unknown): SupportModalState {
 }
 
 const SPIN_SEGMENT_ANGLE = 360 / REWARD_TIERS.length;
-const SPIN_SEGMENT_COLORS = ["#EAF2FF", "#FFFFFF"];
+const SPIN_SEGMENT_COLORS = ["#006AFC", "#EAEBEF"];
+const SPIN_WHEEL_SIZE = 288;
+const SPIN_WHEEL_RADIUS = SPIN_WHEEL_SIZE / 2;
+// The pointer sits at the 3 o'clock edge of the wheel (not the top), so the
+// winning segment should land at 90° rather than 0°.
+const SPIN_POINTER_ANGLE = 90;
+
+function getRewardTierLabel(tier: (typeof REWARD_TIERS)[number]) {
+  if (tier.isCash) return `£${tier.valueGbp}`;
+  if (tier.type === "mystery_bag") return "Mystery";
+  return `£${tier.valueGbp}`;
+}
+
+// angle: degrees clockwise from 12 o'clock, matching how the wheel's own
+// rotation is expressed elsewhere in this file.
+function polarPoint(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function describeWedgePath(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
+  const start = polarPoint(cx, cy, r, startAngle);
+  const end = polarPoint(cx, cy, r, endAngle);
+  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
+  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
+}
+
+function SpinWheelSvg({ rotation }: { rotation: number }) {
+  const cx = SPIN_WHEEL_RADIUS;
+  const cy = SPIN_WHEEL_RADIUS;
+  return (
+    <svg
+      viewBox={`0 0 ${SPIN_WHEEL_SIZE} ${SPIN_WHEEL_SIZE}`}
+      width={SPIN_WHEEL_SIZE}
+      height={SPIN_WHEEL_SIZE}
+      className="spin-wheel"
+      style={{ transform: `rotate(${rotation}deg)` }}
+    >
+      {REWARD_TIERS.map((tier, i) => {
+        const startAngle = i * SPIN_SEGMENT_ANGLE;
+        const endAngle = startAngle + SPIN_SEGMENT_ANGLE;
+        const labelPoint = polarPoint(cx, cy, SPIN_WHEEL_RADIUS * 0.62, startAngle + SPIN_SEGMENT_ANGLE / 2);
+        return (
+          <g key={tier.label}>
+            <path
+              d={describeWedgePath(cx, cy, SPIN_WHEEL_RADIUS, startAngle, endAngle)}
+              fill={SPIN_SEGMENT_COLORS[i % 2]}
+              stroke="#000000"
+              strokeWidth={1}
+            />
+            <text
+              x={labelPoint.x}
+              y={labelPoint.y}
+              transform={`rotate(${startAngle + SPIN_SEGMENT_ANGLE / 2}, ${labelPoint.x}, ${labelPoint.y})`}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontFamily="var(--ma-font-display)"
+              fontSize={22}
+              fontWeight={500}
+              fill="#1D1D1F"
+            >
+              {getRewardTierLabel(tier)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
 
 export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [deviceCategory, setDeviceCategory] = useState<DeviceCategory>("phone");
@@ -626,7 +708,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [step, setStep] = useState<JourneyStep>("condition");
   const [condition, setCondition] = useState<DeviceCondition>("good");
   const [selectedStorage, setSelectedStorage] = useState<string | null>(null);
-  const [selectedColour, setSelectedColour] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [requestedAmount, setRequestedAmount] = useState("");
   const [quote, setQuote] = useState<QuoteSummary | null>(null);
@@ -685,7 +766,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       setDeviceCategory(restoredQuote.category);
       setCondition(restoredQuote.condition);
       setSelectedStorage(restoredQuote.storageOption);
-      setSelectedColour(restoredQuote.colourOption);
       setCollectionAddress(restoredAddress);
       setHasOwnPackaging(false);
       setShowJourney(true);
@@ -748,7 +828,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     };
   }, [deviceCategory, dropdownOpen, modelQuery]);
 
-  const colourOptions = colourPalette[deviceCategory];
   const storageChoices = storageOptionsByCategory[deviceCategory];
 
   // Every step transition should land the user at the top of the new screen,
@@ -770,7 +849,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setTrade(null);
     setSelectedModel(null);
     setSelectedStorage(null);
-    setSelectedColour(null);
     setEditOpen(false);
     setModelQuery("");
     setSuggestions([]);
@@ -857,6 +935,45 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setStep("storage");
   }
 
+  // Progress-strip labels only allow jumping back to a stage already reached
+  // (enforced in TradeInProgress itself); this just closes any open overlay
+  // so a jump never leaves a stale modal on screen.
+  function navigateToStep(target: JourneyStep) {
+    setSpinOpen(false);
+    setEditOpen(false);
+    setStep(target);
+  }
+
+  // Single source of truth for the previous screen in the journey, used by
+  // the shared top-bar back button. null means there's nothing to go back to.
+  function getPreviousStep(current: JourneyStep): JourneyStep | null {
+    switch (current) {
+      case "model":
+        return null;
+      case "storage":
+        return "model";
+      case "condition":
+        return "storage";
+      case "review":
+        return "condition";
+      case "congrats":
+        return "review";
+      case "checkout":
+        return "congrats";
+      case "postagePack":
+        return "checkout";
+      case "payout":
+        return hasOwnPackaging ? "checkout" : "postagePack";
+      case "done":
+        return null;
+    }
+  }
+
+  function handleBack() {
+    const previous = getPreviousStep(step);
+    if (previous) navigateToStep(previous);
+  }
+
   async function submitAmount(mode: "unsure" | "sell") {
     if (!selectedModel) return;
 
@@ -877,7 +994,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
         deviceModelId: selectedModel.id,
         condition,
         storageOption: selectedStorage ?? undefined,
-        colourOption: selectedColour ?? undefined,
         requestedAmountGbp: amount,
       });
       setQuote(data.quote);
@@ -910,7 +1026,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       );
       const segmentCenter = segmentIndex * SPIN_SEGMENT_ANGLE + SPIN_SEGMENT_ANGLE / 2;
       const fullSpins = 6 * 360;
-      const target = fullSpins + (360 - segmentCenter);
+      const target = fullSpins + (((SPIN_POINTER_ANGLE - segmentCenter) % 360) + 360) % 360;
 
       setSpinRotation(target);
       window.setTimeout(() => {
@@ -920,24 +1036,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       }, 4300);
     } catch (error) {
       setSpinning(false);
-      openSupportModal(error);
-    } finally {
-      setRewardLoading(false);
-    }
-  }
-
-  async function skipSpin() {
-    if (!quote) return;
-    setRewardLoading(true);
-    try {
-      const data = await postJson<{ quote: QuoteSummary }>("/api/trade/reward", {
-        quoteId: quote.id,
-        action: "skip",
-      });
-      setQuote(data.quote);
-      setSpinOpen(false);
-      setStep("checkout");
-    } catch (error) {
       openSupportModal(error);
     } finally {
       setRewardLoading(false);
@@ -1040,10 +1138,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     }
   }
 
-  const activeCategory = quote?.category ?? selectedModel?.category ?? deviceCategory;
   const activeBrandModel = quote ? `${quote.brand} ${quote.model}` : (selectedModel?.label ?? "");
-  const activeColour = quote?.colourOption ?? selectedColour;
-  const activeColourLabel = colourPalette[activeCategory].find((c) => c.key === activeColour)?.label ?? activeColour;
 
   return (
     <div className="ma-page tradein-landing relative bg-white">
@@ -1137,23 +1232,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ))}
             </div>
           </div>
-          <div>
-            <SmallLabel>Colour</SmallLabel>
-            <div className="colour-swatch-group mt-3">
-              {colourOptions.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  onClick={() => setSelectedColour(c.key)}
-                  aria-pressed={selectedColour === c.key}
-                  className={`colour-swatch ${selectedColour === c.key ? "is-selected" : ""}`}
-                >
-                  <span className="colour-swatch-dot" style={{ background: c.swatch }} />
-                  <span className="colour-swatch-label">{c.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
           <Button type="button" onClick={() => setEditOpen(false)} className="w-full">
             Save changes
           </Button>
@@ -1170,6 +1248,15 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       {showJourney ? (
         <section id="trade-journey" className="overflow-hidden bg-white">
           <div className="journey-close">
+            {getPreviousStep(step) ? (
+              <button type="button" onClick={handleBack} aria-label="Go back to the previous step" className="journey-close-btn">
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+                  <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            ) : (
+              <span />
+            )}
             <button type="button" onClick={cancelJourney} aria-label="Cancel and close this quote" className="journey-close-btn">
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
                 <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -1177,7 +1264,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
             </button>
           </div>
 
-          <TradeInProgress step={step} />
+          <TradeInProgress step={step} onNavigate={navigateToStep} />
 
           <Container className="pb-[48px] pt-[8px]">
             <div className="mx-auto max-w-xl">
@@ -1250,41 +1337,51 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ) : null}
 
               {step === "condition" ? (
-                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-4 text-center">
-                  <div className="flex w-full flex-col items-center gap-7 pb-7 pt-4">
-                    <div className="flex w-full max-w-[370px] flex-col items-center gap-4">
-                      <h2 className="w-full font-sans text-[26px] font-normal leading-[1.3] tracking-[-0.005em] text-[#1D1D1F]">
-                        How would you describe its condition?
-                      </h2>
-                      <p className="w-full max-w-[370px] text-center font-sans text-[16px] font-normal leading-[19px] text-[#6E6E73]">
-                        {activeBrandModel || getCategoryLabel(deviceCategory)} &middot; be as accurate as you
-                        can &mdash; your final offer depends on the device matching this description.
-                      </p>
+                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center gap-5 bg-white px-5 py-8 text-center">
+                  <div className="device-preview">
+                    <Image
+                      src={getDeviceImageSrc(selectedModel ?? { category: deviceCategory })}
+                      alt={activeBrandModel || getCategoryLabel(deviceCategory)}
+                      width={200}
+                      height={228}
+                      unoptimized
+                      className="device-preview-image"
+                    />
+                    <div>
+                      <h2 className="device-preview-name">{activeBrandModel}</h2>
+                      <button type="button" onClick={() => setStep("model")} className="change-device-link">
+                        Change device
+                      </button>
                     </div>
+                  </div>
 
-                    <div className="condition-options">
-                      {deviceConditions.map((item) => (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() => setCondition(item.key)}
-                          aria-pressed={condition === item.key}
-                          className={`text-choice transition ${condition === item.key ? "is-selected" : ""}`}
-                        >
-                          <span className="text-choice-title">{conditionLabels[item.key]}</span>
-                          <span className="text-choice-description">{conditionDescriptions[item.key]}</span>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="storage-info">
+                    <h3 className="storage-title">How would you describe its condition?</h3>
+                    <p className="storage-help">
+                      Be as accurate as you can &mdash; your final offer depends on the device matching this
+                      description.
+                    </p>
+                  </div>
 
-                    <div className="flex w-full max-w-[280px] flex-col items-center gap-3 sm:flex-row-reverse">
-                      <Button type="button" onClick={() => setStep("colour")} className="w-full">
-                        Continue
-                      </Button>
-                      <Button type="button" variant="secondary" onClick={() => setStep("storage")} className="w-full">
-                        Back
-                      </Button>
-                    </div>
+                  <div className="condition-options">
+                    {deviceConditions.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setCondition(item.key)}
+                        aria-pressed={condition === item.key}
+                        className={`condition-option-card transition ${condition === item.key ? "is-selected" : ""}`}
+                      >
+                        <span className="condition-option-title">{conditionLabels[item.key]}</span>
+                        <span className="condition-option-copy">{conditionDescriptions[item.key]}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex w-full flex-col gap-3">
+                    <button type="button" onClick={() => setStep("review")} className="storage-continue">
+                      Continue
+                    </button>
                   </div>
                 </div>
               ) : null}
@@ -1338,62 +1435,21 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     >
                       Continue
                     </button>
-                    <Button type="button" variant="secondary" onClick={() => setStep("model")} className="w-full">
-                      Back
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-
-              {step === "colour" ? (
-                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-5 text-center">
-                  <div className="flex w-full flex-col items-center gap-7 pb-7 pt-4">
-                    <div className="flex w-full max-w-[370px] flex-col items-center gap-4">
-                      <h2 className="font-sans text-[26px] font-normal leading-[1.3] tracking-[-0.005em] text-[#1D1D1F]">
-                        What colour is it?
-                      </h2>
-                      <p className="max-w-[370px] text-center font-sans text-[16px] font-normal leading-[19px] text-[#6E6E73]">
-                        Pick the closest match &mdash; this helps us describe your device accurately.
-                      </p>
-                    </div>
-
-                    <div className="colour-swatch-group">
-                      {colourOptions.map((c) => (
-                        <button
-                          key={c.key}
-                          type="button"
-                          onClick={() => setSelectedColour(c.key)}
-                          aria-pressed={selectedColour === c.key}
-                          className={`colour-swatch ${selectedColour === c.key ? "is-selected" : ""}`}
-                        >
-                          <span className="colour-swatch-dot" style={{ background: c.swatch }} />
-                          <span className="colour-swatch-label">{c.label}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="flex w-full max-w-[280px] flex-col items-center gap-3 sm:flex-row-reverse">
-                      <Button type="button" disabled={!selectedColour} onClick={() => setStep("review")} className="w-full">
-                        Continue
-                      </Button>
-                      <Button type="button" variant="secondary" onClick={() => setStep("condition")} className="w-full">
-                        Back
-                      </Button>
-                    </div>
                   </div>
                 </div>
               ) : null}
 
               {step === "review" ? (
-                <div className="mx-auto flex w-full max-w-[420px] flex-col items-center bg-white px-4 text-center">
-                  <div className="flex w-full flex-col items-center gap-6 pb-7 pt-4">
-                    <div className="device-visual">
+                <div className="mx-auto flex w-full max-w-[402px] flex-col items-center gap-5 bg-white px-5 py-8 text-center">
+                  <div className="device-preview">
+                    <div className="relative">
                       <Image
                         src={getDeviceImageSrc(selectedModel ?? { category: deviceCategory })}
                         alt={activeBrandModel || getCategoryLabel(deviceCategory)}
                         width={200}
-                        height={200}
+                        height={228}
                         unoptimized
+                        className="device-preview-image"
                       />
                       <button
                         type="button"
@@ -1411,52 +1467,53 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                         </svg>
                       </button>
                     </div>
+                  </div>
 
-                    <div>
-                      <div className="text-lg font-semibold text-[#1D1D1F]">{activeBrandModel}</div>
-                      <div className="ma-caption mt-1 text-[#6E6E73]">
-                        {[selectedStorage, colourOptions.find((c) => c.key === selectedColour)?.label, conditionLabels[condition]]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </div>
-                    </div>
+                  <div className="selected-device-copy">
+                    <h2 className="selected-device-title">Your {activeBrandModel} is selected</h2>
+                    <p className="selected-device-help">We&apos;ve saved your device, storage and condition.</p>
+                  </div>
 
-                    <div className="w-full max-w-[360px]">
-                      <h2 className="font-sans text-[22px] font-normal leading-[1.3] text-[#1D1D1F]">
-                        How much would you like to sell it for?
-                      </h2>
-                      <div className="mt-4 flex w-full items-center rounded-full border border-black bg-white px-5">
-                        <label htmlFor="requested-amount" className="text-sm font-semibold text-[#1D1D1F]">
-                          £
-                        </label>
-                        <input
-                          id="requested-amount"
-                          type="number"
-                          min="1"
-                          step="1"
-                          inputMode="numeric"
-                          value={requestedAmount}
-                          onChange={(event) => setRequestedAmount(event.target.value)}
-                          placeholder="Optional"
-                          className="h-12 w-full bg-transparent px-2 text-[14px] font-medium text-[#1D1D1F] placeholder:text-[#8A8A8E] outline-none"
-                        />
-                      </div>
+                  <div className="price-info">
+                    <h3 className="price-title">How much would you like to sell for?</h3>
+                    <p className="price-help">
+                      Type your desired price below. If you&apos;re not sure, you can skip this step and
+                      continue.
+                    </p>
+                  </div>
 
-                      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          disabled={quoteLoading}
-                          onClick={() => submitAmount("unsure")}
-                          className="w-full"
-                        >
-                          I am not sure
-                        </Button>
-                        <Button type="button" disabled={quoteLoading} onClick={() => submitAmount("sell")} className="w-full">
-                          {quoteLoading ? "Working it out..." : "Sell Phone"}
-                        </Button>
-                      </div>
-                    </div>
+                  <label htmlFor="requested-amount" className="sr-only">
+                    Desired price
+                  </label>
+                  <input
+                    id="requested-amount"
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
+                    value={requestedAmount}
+                    onChange={(event) => setRequestedAmount(event.target.value)}
+                    placeholder="£100"
+                    className="price-input"
+                  />
+
+                  <div className="value-actions">
+                    <button
+                      type="button"
+                      disabled={quoteLoading}
+                      onClick={() => submitAmount("sell")}
+                      className="value-continue disabled:cursor-not-allowed"
+                    >
+                      {quoteLoading ? "Working it out..." : "Continue"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={quoteLoading}
+                      onClick={() => submitAmount("unsure")}
+                      className="value-unsure disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      I&apos;m not sure
+                    </button>
                   </div>
                 </div>
               ) : null}
@@ -1481,15 +1538,12 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                   </p>
                   <div className="guide-price mt-2">{formatCurrency(quote.cashOfferGbp)}</div>
                   <p className="mt-3 max-w-[340px] text-[13px] leading-5 text-[#6E6E73]">
-                    Want to try for even more? Spin our prize wheel for a bonus voucher, cash top-up, or
-                    mystery bag worth up to £600.
+                    Every seller gets a free spin! Play our prize wheel for a bonus voucher, cash top-up,
+                    or mystery bag worth up to £600.
                   </p>
                   <div className="mt-6 flex w-full flex-col gap-3">
                     <Button type="button" onClick={startSpin} className="w-full">
-                      Get more value!
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={() => setStep("checkout")} className="w-full">
-                      Skip to checkout
+                      Spin the wheel
                     </Button>
                   </div>
                 </div>
@@ -1517,12 +1571,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       <div className="summary-row">
                         <span className="summary-row-label">Storage</span>
                         <span className="summary-row-value">{quote.storageOption}</span>
-                      </div>
-                    ) : null}
-                    {activeColourLabel ? (
-                      <div className="summary-row">
-                        <span className="summary-row-label">Colour</span>
-                        <span className="summary-row-value">{activeColourLabel}</span>
                       </div>
                     ) : null}
                     <div className="summary-row">
@@ -1590,9 +1638,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                   <div className="mt-5 flex flex-col gap-3">
                     <Button type="button" disabled={postagePackLoading} onClick={startPostagePackCheckout} className="w-full">
                       {postagePackLoading ? "Redirecting to payment..." : `Pay ${formatCurrency(POSTAGE_PACK_COST_GBP)} & continue`}
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={() => setStep("checkout")} className="w-full">
-                      Back
                     </Button>
                   </div>
                   <p className="mt-4 text-xs leading-5 text-muted">
@@ -1720,64 +1765,50 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       ) : null}
 
       {/* Spin-the-wheel modal */}
-      <Modal open={spinOpen} onClose={() => (rewardRevealed ? continueAfterReward() : setSpinOpen(false))} title="Spin for bonus value">
-        <div className="flex flex-col items-center gap-6 text-center">
-          {!rewardRevealed ? (
-            <>
-              <div className="spin-wheel-outer">
-                <div className="spin-wheel-pointer" />
-                <div
-                  className="spin-wheel"
-                  style={{
-                    transform: `rotate(${spinRotation}deg)`,
-                    background: `conic-gradient(${REWARD_TIERS.map(
-                      (_, i) =>
-                        `${SPIN_SEGMENT_COLORS[i % 2]} ${i * SPIN_SEGMENT_ANGLE}deg ${(i + 1) * SPIN_SEGMENT_ANGLE}deg`,
-                    ).join(", ")})`,
-                  }}
-                >
-                  {REWARD_TIERS.map((tier, i) => {
-                    const angle = i * SPIN_SEGMENT_ANGLE + SPIN_SEGMENT_ANGLE / 2;
-                    return (
-                      <div
-                        key={tier.label}
-                        className="spin-wheel-segment"
-                        style={{ transform: `rotate(${angle}deg)` }}
-                      >
-                        <span style={{ transform: `rotate(${-angle}deg)`, display: "inline-block", maxWidth: 70 }}>
-                          {tier.isCash ? `£${tier.valueGbp}` : tier.type === "mystery_bag" ? "Mystery" : "Voucher"}
-                        </span>
-                      </div>
-                    );
-                  })}
+      {spinOpen ? (
+        <div className="spin-overlay">
+          <div className="spin-modal">
+            <div className="spin-modal-inner">
+              {!rewardRevealed ? (
+                <>
+                  <div className="spin-copy">
+                    <h2 className="spin-title">You&apos;ve earned a bonus spin!</h2>
+                    <p className="spin-help">
+                      Great news &mdash; your trade-in qualifies for an exclusive Mobile Arcade bonus. Spin
+                      the wheel for a chance to win extra rewards!
+                    </p>
+                  </div>
+
+                  <div className="spin-wheel-wrap">
+                    <SpinWheelSvg rotation={spinRotation} />
+                    <div className="spin-pointer" />
+                  </div>
+
+                  <div className="spin-actions">
+                    <button type="button" disabled={spinning || rewardLoading} onClick={playSpin} className="spin-button disabled:cursor-not-allowed">
+                      {spinning ? "Spinning..." : "Spin to win"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="relative w-full py-6 text-center">
+                  <Confetti />
+                  <SmallLabel>You won</SmallLabel>
+                  <div className="mt-3 text-3xl font-semibold tracking-tight text-brand">
+                    {quote?.reward?.label}
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-muted">
+                    This has been added to your quote and stored against your reference.
+                  </p>
+                  <Button type="button" onClick={continueAfterReward} className="mt-6 w-full">
+                    Continue to checkout
+                  </Button>
                 </div>
-              </div>
-              <div className="flex w-full max-w-[280px] flex-col gap-3">
-                <Button type="button" disabled={spinning || rewardLoading} onClick={playSpin} className="w-full">
-                  {spinning ? "Spinning..." : "Spin now"}
-                </Button>
-                <Button type="button" variant="secondary" disabled={spinning || rewardLoading} onClick={skipSpin} className="w-full">
-                  Skip bonus and continue
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="relative w-full py-6">
-              <Confetti />
-              <SmallLabel>You won</SmallLabel>
-              <div className="mt-3 text-3xl font-semibold tracking-tight text-brand">
-                {quote?.reward?.label}
-              </div>
-              <p className="mt-3 text-sm leading-6 text-muted">
-                This has been added to your quote and stored against your reference.
-              </p>
-              <Button type="button" onClick={continueAfterReward} className="mt-6 w-full">
-                Continue to checkout
-              </Button>
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </Modal>
+      ) : null}
 
       <section className="steps-section">
         <div className="steps-heading">
