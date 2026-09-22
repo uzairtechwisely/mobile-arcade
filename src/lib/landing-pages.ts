@@ -12,8 +12,10 @@ export type LandingPageConfig = {
   faqs: Array<{ q: string; a: string }>;
 };
 
-const PLACEHOLDER_PROMO = "/brand/placeholders/promo.svg";
-const PLACEHOLDER_STEP = "/brand/placeholders/step.svg";
+const PLACEHOLDER_PROMO = "/brand/photos/promo-phones.webp";
+const STEP_QUOTE = "/brand/photos/step-quote.webp";
+const STEP_POST = "/brand/photos/step-post.webp";
+const STEP_PAYOUT = "/brand/photos/step-payout.webp";
 
 export const landingPages: LandingPageConfig[] = [
   {
@@ -31,17 +33,17 @@ export const landingPages: LandingPageConfig[] = [
       {
         title: "Get estimated value",
         body: "Tell us your device and condition to receive an instant estimate.",
-        imageUrl: PLACEHOLDER_STEP,
+        imageUrl: STEP_QUOTE,
       },
       {
         title: "Mail it to Mobile Arcade",
         body: "Send it with your preferred postage service and we add that postage amount back after receipt.",
-        imageUrl: PLACEHOLDER_STEP,
+        imageUrl: STEP_POST,
       },
       {
         title: "Inspection and payment",
         body: "We confirm the condition and pay you fast. No hidden fees.",
-        imageUrl: PLACEHOLDER_STEP,
+        imageUrl: STEP_PAYOUT,
       },
     ],
     faqs: [
@@ -82,17 +84,17 @@ export const landingPages: LandingPageConfig[] = [
       {
         title: "Tell us your device",
         body: "Select type, make, model and condition to get your quote.",
-        imageUrl: PLACEHOLDER_STEP,
+        imageUrl: STEP_QUOTE,
       },
       {
         title: "Book free collection",
         body: "Choose a date that suits you. We’ll collect it from your door.",
-        imageUrl: PLACEHOLDER_STEP,
+        imageUrl: STEP_POST,
       },
       {
         title: "Get paid fast",
         body: "We inspect and confirm. Then we pay out quickly and safely.",
-        imageUrl: PLACEHOLDER_STEP,
+        imageUrl: STEP_PAYOUT,
       },
     ],
     faqs: [

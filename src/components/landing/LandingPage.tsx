@@ -199,8 +199,45 @@ function getModelStepTitle(category: DeviceCategory) {
 function getFindValueCtaLabel(category: DeviceCategory) {
   if (category === "phone") return "Find my phone value";
   if (category === "laptop") return "Find my laptop value";
-  if (category === "tablet") return "Find my tablet value";
+  if (category === "tablet") return "Find my tablet/iPad value";
   return "Find my gaming device value";
+}
+
+const PROMO_LAPTOP = "/brand/photos/promo-laptop.webp";
+const PROMO_TABLET = "/brand/photos/promo-tablets.webp";
+const PROMO_GAMING = "/brand/placeholders/promo.svg";
+
+function getPromoContent(category: DeviceCategory, cfg: LandingPageConfig) {
+  if (category === "laptop") {
+    return {
+      title: "Get £100-£600",
+      subtitle: "when you trade in any laptop",
+      ctaLabel: getFindValueCtaLabel(category),
+      imageUrl: PROMO_LAPTOP,
+    };
+  }
+  if (category === "tablet") {
+    return {
+      title: "Get £80-£550",
+      subtitle: "when you trade in any tablet/ipad",
+      ctaLabel: getFindValueCtaLabel(category),
+      imageUrl: PROMO_TABLET,
+    };
+  }
+  if (category === "gaming_device") {
+    return {
+      title: "Get £50-£350",
+      subtitle: "when you trade in any gaming device",
+      ctaLabel: getFindValueCtaLabel(category),
+      imageUrl: PROMO_GAMING,
+    };
+  }
+  return {
+    title: cfg.promoTitle,
+    subtitle: cfg.promoSubtitle,
+    ctaLabel: cfg.promoCtaLabel,
+    imageUrl: cfg.promoImageUrl,
+  };
 }
 
 function Confetti() {
@@ -356,25 +393,35 @@ function DeviceCategorySelector({
   );
 }
 
-function TradeInPromoCard({ cfg, onCta }: { cfg: LandingPageConfig; onCta: () => void }) {
+function TradeInPromoCard({
+  category,
+  cfg,
+  onCta,
+}: {
+  category: DeviceCategory;
+  cfg: LandingPageConfig;
+  onCta: () => void;
+}) {
+  const content = getPromoContent(category, cfg);
   return (
     <section className="tradein-promo-section">
       <div className="tradein-promo">
         <div className="tradein-promo-copy">
           <h2 className="tradein-promo-title">
-            <strong>{cfg.promoTitle}</strong>
+            <strong>{content.title}</strong>
             <br />
-            {cfg.promoSubtitle}
+            {content.subtitle}
           </h2>
           <button type="button" onClick={onCta} className="tradein-promo-cta">
-            {cfg.promoCtaLabel}
+            {content.ctaLabel}
           </button>
         </div>
         <Image
-          src={cfg.promoImageUrl}
+          key={content.imageUrl}
+          src={content.imageUrl}
           alt="Trade-in devices"
-          width={361}
-          height={370}
+          width={420}
+          height={315}
           className="tradein-promo-image"
         />
       </div>
@@ -884,8 +931,12 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setShowJourney(false);
   }
 
-  // Landing-page category icons and the promo CTA both just start the funnel;
-  // the exact model is chosen as the funnel's own first step.
+  // Landing-page category icons just select a category and update the promo
+  // banner in place; the funnel itself only starts from the promo CTA.
+  function selectCategory(category: DeviceCategory) {
+    setDeviceCategory(category);
+  }
+
   function startFunnelForCategory(category: DeviceCategory) {
     setDeviceCategory(category);
     resetJourney();
@@ -1251,9 +1302,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       <LogoOnlyHeader />
       <HeroIntro cfg={cfg} />
 
-      <DeviceCategorySelector selectedCategory={deviceCategory} onSelect={startFunnelForCategory} />
+      <DeviceCategorySelector selectedCategory={deviceCategory} onSelect={selectCategory} />
 
-      <TradeInPromoCard cfg={cfg} onCta={() => startFunnelForCategory(deviceCategory)} />
+      <TradeInPromoCard category={deviceCategory} cfg={cfg} onCta={() => startFunnelForCategory(deviceCategory)} />
 
       {showJourney ? (
         <section id="trade-journey" className="overflow-hidden bg-white">

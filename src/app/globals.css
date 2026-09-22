@@ -1013,7 +1013,7 @@ textarea:focus-visible {
   isolation: isolate;
   width: 100%;
   max-width: 362px;
-  min-height: 566px;
+  min-height: 520px;
   padding-top: 32px;
   display: flex;
   flex-direction: column;
@@ -1066,11 +1066,12 @@ textarea:focus-visible {
 
 .tradein-promo-image {
   position: absolute;
-  width: 361px;
-  height: 369.85px;
-  left: -8px;
-  top: 226px;
+  width: 300px;
+  height: 225px;
+  left: 31px;
+  top: 258px;
   object-fit: contain;
+  border-radius: 24px;
   z-index: 1;
 }
 
@@ -1463,9 +1464,11 @@ textarea:focus-visible {
   }
 
   .tradein-promo-cta {
+    width: auto;
     padding: 0 40px;
     font-size: 18px;
-    line-height: 28px;
+    line-height: 52px;
+    white-space: nowrap;
   }
 
   .tradein-promo-image {
@@ -1692,7 +1695,11 @@ textarea:focus-visible {
   }
 
   .model-search-cta {
+    flex: none;
+    width: auto;
+    min-height: 52px;
     padding: 0 32px !important;
+    white-space: nowrap;
   }
 
   .model-results {
@@ -1781,46 +1788,60 @@ textarea:focus-visible {
   /* ---- Condition screen: same image-left/details-right layout as storage ---- */
   .condition-main {
     max-width: none;
-    min-height: 690px;
-    padding: 80px;
+    min-height: auto;
+    padding: 56px 80px;
   }
 
   .condition-layout {
-    max-width: 958px;
+    max-width: 1180px;
+    width: 100%;
     flex-direction: row;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     gap: 56px;
   }
 
   .condition-layout .device-preview-image {
-    width: 323px;
-    height: 483px;
+    width: 240px;
+    height: 348px;
     flex: none;
   }
 
   .condition-content {
-    width: 640px;
+    width: auto;
+    flex: 1 1 auto;
+    max-width: 780px;
     align-items: flex-start;
     text-align: left;
   }
 
   .condition-content .device-preview-name {
-    font-size: 48px;
-    line-height: 60px;
+    font-size: 40px;
+    line-height: 46px;
     text-align: left;
   }
 
-  /* Screenshot shows a 2-column grid, not the flex-column the spec text says */
+  /* 3 columns keeps all 6 conditions to 2 rows, so the section fits without scrolling */
   .condition-options {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px 16px;
     width: 100%;
   }
 
   .condition-option-card {
+    padding: 16px;
+    min-height: 108px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .condition-option-title {
+    font-size: 15px;
+  }
+
+  .condition-option-copy {
+    font-size: 12.5px;
+    line-height: 17px;
   }
 
   .condition-content .storage-continue {
