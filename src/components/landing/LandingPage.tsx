@@ -1588,9 +1588,8 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ) : null}
 
               {step === "congrats" && quote ? (
-                <div className="relative mx-auto flex w-full max-w-[420px] flex-col items-center overflow-hidden rounded-[36px] bg-white px-6 py-10 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[560px] lg:px-16 lg:py-16">
-                  <Confetti />
-                  <div className="device-visual lg:scale-125">
+                <div className="journey-plain-card relative mx-auto flex w-full max-w-[420px] flex-col items-center overflow-hidden rounded-[36px] bg-white px-6 py-10 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
+                  <div className="device-visual">
                     <Image
                       src={getDeviceImageSrc(quote)}
                       alt={`${quote.brand} ${quote.model} placeholder`}
@@ -1619,200 +1618,209 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ) : null}
 
               {step === "checkout" && quote ? (
-                <div className="mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[560px] lg:p-6">
-                  <div className="mx-auto device-visual checkout-device-visual">
-                    <Image
-                      src={getDeviceImageSrc(quote)}
-                      alt={`${quote.brand} ${quote.model} placeholder`}
-                      width={200}
-                      height={200}
-                      unoptimized
-                    />
-                    <span className="device-visual-badge">Sold</span>
-                  </div>
+                <div className="journey-plain-card mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
+                  <div className="lg:mx-auto lg:w-full lg:max-w-[420px]">
+                    <div className="mx-auto device-visual">
+                      <Image
+                        src={getDeviceImageSrc(quote)}
+                        alt={`${quote.brand} ${quote.model} placeholder`}
+                        width={200}
+                        height={200}
+                        unoptimized
+                      />
+                      <span className="device-visual-badge">Sold</span>
+                    </div>
 
-                  <div className="mt-6 space-y-1.5 text-left lg:mt-3 lg:space-y-1">
-                    <div className="summary-row">
-                      <span className="summary-row-label">Device</span>
-                      <span className="summary-row-value">{quote.brand} {quote.model}</span>
-                    </div>
-                    {quote.storageOption ? (
+                    <div className="mt-6 space-y-1.5 text-left lg:mt-6">
                       <div className="summary-row">
-                        <span className="summary-row-label">Storage</span>
-                        <span className="summary-row-value">{quote.storageOption}</span>
+                        <span className="summary-row-label">Device</span>
+                        <span className="summary-row-value">{quote.brand} {quote.model}</span>
                       </div>
-                    ) : null}
-                    <div className="summary-row">
-                      <span className="summary-row-label">Condition</span>
-                      <span className="summary-row-value">{conditionLabels[quote.condition]}</span>
-                    </div>
-                    <div className="summary-row">
-                      <span className="summary-row-label">Sold for</span>
-                      <span className="summary-row-value text-brand">up to {formatCurrency(quote.cashOfferGbp)}</span>
-                    </div>
-                    {quote.reward && quote.reward.type !== "none" ? (
+                      {quote.storageOption ? (
+                        <div className="summary-row">
+                          <span className="summary-row-label">Storage</span>
+                          <span className="summary-row-value">{quote.storageOption}</span>
+                        </div>
+                      ) : null}
                       <div className="summary-row">
-                        <span className="summary-row-label">Bonus reward</span>
-                        <span className="summary-row-value">{quote.reward.label}</span>
+                        <span className="summary-row-label">Condition</span>
+                        <span className="summary-row-value">{conditionLabels[quote.condition]}</span>
                       </div>
-                    ) : null}
-                  </div>
+                      <div className="summary-row">
+                        <span className="summary-row-label">Sold for</span>
+                        <span className="summary-row-value text-brand">up to {formatCurrency(quote.cashOfferGbp)}</span>
+                      </div>
+                      {quote.reward && quote.reward.type !== "none" ? (
+                        <div className="summary-row">
+                          <span className="summary-row-label">Bonus reward</span>
+                          <span className="summary-row-value">{quote.reward.label}</span>
+                        </div>
+                      ) : null}
+                    </div>
 
-                  <div className="mt-6 text-left lg:mt-4">
-                    <h3 className="text-base font-semibold text-[#1D1D1F] lg:text-base">
-                      Do you have safe packaging (e.g. the original box) to send your device in?
-                    </h3>
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row lg:mt-3">
-                      <Button type="button" onClick={() => choosePackaging(true)} className="w-full">
-                        Yes, I have packaging
-                      </Button>
-                      <Button type="button" variant="secondary" onClick={() => choosePackaging(false)} className="w-full">
-                        No, send me a pack
-                      </Button>
+                    <div className="mt-6 text-left lg:mt-6">
+                      <h3 className="text-base font-semibold text-[#1D1D1F]">
+                        Do you have safe packaging (e.g. the original box) to send your device in?
+                      </h3>
+                      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                        <Button type="button" onClick={() => choosePackaging(true)} className="w-full">
+                          Yes, I have packaging
+                        </Button>
+                        <Button type="button" variant="secondary" onClick={() => choosePackaging(false)} className="w-full">
+                          No, send me a pack
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
               ) : null}
 
               {step === "postagePack" && quote ? (
-                <div className="mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[560px] lg:p-14">
-                  <SmallLabel>Postage pack</SmallLabel>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#1D1D1F] lg:text-3xl">
-                    A protective pack costs {formatCurrency(POSTAGE_PACK_COST_GBP)}
-                  </h2>
-                  <p className="mt-3 text-sm leading-6 text-muted">
-                    This is fully refunded &mdash; it gets added back to your payout once we receive and
-                    inspect your device.
-                  </p>
+                <div className="journey-plain-card mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
+                  <div className="lg:mx-auto lg:w-full lg:max-w-[460px]">
+                    <SmallLabel>Postage pack</SmallLabel>
+                    <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#1D1D1F] lg:text-3xl">
+                      A protective pack costs {formatCurrency(POSTAGE_PACK_COST_GBP)}
+                    </h2>
+                    <p className="mt-3 text-sm leading-6 text-muted">
+                      This is fully refunded &mdash; it gets added back to your payout once we receive and
+                      inspect your device.
+                    </p>
 
-                  <div className="mt-5">
-                    <label htmlFor="pack-address" className="field-label">
-                      Where should we send it?
-                    </label>
-                    <textarea
-                      id="pack-address"
-                      value={collectionAddress}
-                      onChange={(event) => setCollectionAddress(event.target.value)}
-                      rows={3}
-                      className="field-input py-3 focus-visible:ring-2 focus-visible:ring-brand"
-                    />
-                  </div>
-
-                  {postagePackError ? (
-                    <div className="mt-4 rounded-2xl bg-[rgba(254,242,242,1)] px-4 py-3 text-sm text-[rgba(153,27,27,1)]">
-                      {postagePackError}
+                    <div className="mt-5">
+                      <label htmlFor="pack-address" className="field-label">
+                        Where should we send it?
+                      </label>
+                      <textarea
+                        id="pack-address"
+                        value={collectionAddress}
+                        onChange={(event) => setCollectionAddress(event.target.value)}
+                        rows={3}
+                        className="field-input py-3 focus-visible:ring-2 focus-visible:ring-brand"
+                      />
                     </div>
-                  ) : null}
 
-                  <div className="mt-5 flex flex-col gap-3">
-                    <Button type="button" disabled={postagePackLoading} onClick={startPostagePackCheckout} className="w-full">
-                      {postagePackLoading ? "Redirecting to payment..." : `Pay ${formatCurrency(POSTAGE_PACK_COST_GBP)} & continue`}
-                    </Button>
+                    {postagePackError ? (
+                      <div className="mt-4 rounded-2xl bg-[rgba(254,242,242,1)] px-4 py-3 text-sm text-[rgba(153,27,27,1)]">
+                        {postagePackError}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-5 flex flex-col gap-3">
+                      <Button type="button" disabled={postagePackLoading} onClick={startPostagePackCheckout} className="w-full">
+                        {postagePackLoading ? "Redirecting to payment..." : `Pay ${formatCurrency(POSTAGE_PACK_COST_GBP)} & continue`}
+                      </Button>
+                    </div>
+                    <p className="mt-4 text-xs leading-5 text-muted">
+                      Card payment is securely handled by Stripe. We never see or store your card details.
+                    </p>
                   </div>
-                  <p className="mt-4 text-xs leading-5 text-muted">
-                    Card payment is securely handled by Stripe. We never see or store your card details.
-                  </p>
                 </div>
               ) : null}
 
               {step === "payout" && quote ? (
                 <form
                   onSubmit={handleConfirmTrade}
-                  className="mx-auto w-full max-w-[420px] space-y-4 rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[720px] lg:p-14"
+                  className="payout-main mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[720px]"
                 >
-                  <SmallLabel>Almost there to your cash</SmallLabel>
-                  <h2 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] lg:text-3xl">
-                    A few details to pay you
-                  </h2>
+                  <div className="payout-columns space-y-4 lg:space-y-0">
+                    <div className="payout-col-left space-y-4">
+                      <SmallLabel>Almost there to your cash</SmallLabel>
+                      <h2 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] lg:text-3xl">
+                        A few details to pay you
+                      </h2>
 
-                  <div className="trust-box">
-                    We need your contact and bank details so our team can confirm your device and send your
-                    payment directly once it&apos;s received and inspected. Your details are handled in line
-                    with our{" "}
-                    <a href="https://mobilearcadeltd.co.uk/privacy" target="_blank" rel="noreferrer" className="font-semibold text-brand">
-                      Privacy Policy
-                    </a>{" "}
-                    and are never shared with third parties.
+                      <div className="trust-box">
+                        We need your contact and bank details so our team can confirm your device and send your
+                        payment directly once it&apos;s received and inspected. Your details are handled in line
+                        with our{" "}
+                        <a href="https://mobilearcadeltd.co.uk/privacy" target="_blank" rel="noreferrer" className="font-semibold text-brand">
+                          Privacy Policy
+                        </a>{" "}
+                        and are never shared with third parties.
+                      </div>
+
+                      <div>
+                        <label htmlFor="customer-name" className="field-label">Full name</label>
+                        <input id="customer-name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label htmlFor="customer-email" className="field-label">Email</label>
+                          <input id="customer-email" type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
+                        </div>
+                        <div>
+                          <label htmlFor="customer-mobile" className="field-label">Mobile</label>
+                          <input id="customer-mobile" value={customerMobile} onChange={(e) => setCustomerMobile(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="collection-address" className="field-label">
+                          {hasOwnPackaging ? "Collection address" : "Return address"}
+                        </label>
+                        <textarea
+                          id="collection-address"
+                          value={collectionAddress}
+                          onChange={(e) => setCollectionAddress(e.target.value)}
+                          rows={2}
+                          className="field-input py-3 focus-visible:ring-2 focus-visible:ring-brand"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="payout-col-right space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+                        <div>
+                          <label htmlFor="bank-name" className="field-label">Account name</label>
+                          <input id="bank-name" value={bankAccountName} onChange={(e) => setBankAccountName(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
+                        </div>
+                        <div>
+                          <label htmlFor="bank-sort" className="field-label">Sort code</label>
+                          <input id="bank-sort" value={bankSortCode} onChange={(e) => setBankSortCode(e.target.value)} placeholder="12-34-56" className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
+                        </div>
+                        <div>
+                          <label htmlFor="bank-number" className="field-label">Account number</label>
+                          <input id="bank-number" value={bankAccountNumber} onChange={(e) => setBankAccountNumber(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
+                        </div>
+                      </div>
+
+                      <label className="flex items-start gap-3 text-sm leading-6 text-muted">
+                        <input
+                          type="checkbox"
+                          checked={termsAccepted}
+                          onChange={(event) => setTermsAccepted(event.target.checked)}
+                          className="mt-1 h-4 w-4 rounded border-black/20"
+                        />
+                        <span>
+                          I accept the{" "}
+                          <a href="https://mobilearcadeltd.co.uk/terms" target="_blank" rel="noreferrer" className="font-semibold text-brand">
+                            Terms &amp; Conditions
+                          </a>{" "}
+                          and have reviewed the{" "}
+                          <a href="https://mobilearcadeltd.co.uk/privacy" target="_blank" rel="noreferrer" className="font-semibold text-brand">
+                            Privacy Policy
+                          </a>
+                          .
+                        </span>
+                      </label>
+
+                      {confirmError ? (
+                        <div className="rounded-2xl bg-[rgba(254,242,242,1)] px-4 py-3 text-sm text-[rgba(153,27,27,1)]">
+                          {confirmError}
+                        </div>
+                      ) : null}
+
+                      <Button type="submit" disabled={confirmLoading || !termsAccepted} className="w-full">
+                        {confirmLoading ? "Confirming..." : "Confirm"}
+                      </Button>
+                    </div>
                   </div>
-
-                  <div>
-                    <label htmlFor="customer-name" className="field-label">Full name</label>
-                    <input id="customer-name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="customer-email" className="field-label">Email</label>
-                      <input id="customer-email" type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
-                    </div>
-                    <div>
-                      <label htmlFor="customer-mobile" className="field-label">Mobile</label>
-                      <input id="customer-mobile" value={customerMobile} onChange={(e) => setCustomerMobile(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="collection-address" className="field-label">
-                      {hasOwnPackaging ? "Collection address" : "Return address"}
-                    </label>
-                    <textarea
-                      id="collection-address"
-                      value={collectionAddress}
-                      onChange={(e) => setCollectionAddress(e.target.value)}
-                      rows={2}
-                      className="field-input py-3 focus-visible:ring-2 focus-visible:ring-brand"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <label htmlFor="bank-name" className="field-label">Account name</label>
-                      <input id="bank-name" value={bankAccountName} onChange={(e) => setBankAccountName(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
-                    </div>
-                    <div>
-                      <label htmlFor="bank-sort" className="field-label">Sort code</label>
-                      <input id="bank-sort" value={bankSortCode} onChange={(e) => setBankSortCode(e.target.value)} placeholder="12-34-56" className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
-                    </div>
-                    <div>
-                      <label htmlFor="bank-number" className="field-label">Account number</label>
-                      <input id="bank-number" value={bankAccountNumber} onChange={(e) => setBankAccountNumber(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
-                    </div>
-                  </div>
-
-                  <label className="flex items-start gap-3 text-sm leading-6 text-muted">
-                    <input
-                      type="checkbox"
-                      checked={termsAccepted}
-                      onChange={(event) => setTermsAccepted(event.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-black/20"
-                    />
-                    <span>
-                      I accept the{" "}
-                      <a href="https://mobilearcadeltd.co.uk/terms" target="_blank" rel="noreferrer" className="font-semibold text-brand">
-                        Terms &amp; Conditions
-                      </a>{" "}
-                      and have reviewed the{" "}
-                      <a href="https://mobilearcadeltd.co.uk/privacy" target="_blank" rel="noreferrer" className="font-semibold text-brand">
-                        Privacy Policy
-                      </a>
-                      .
-                    </span>
-                  </label>
-
-                  {confirmError ? (
-                    <div className="rounded-2xl bg-[rgba(254,242,242,1)] px-4 py-3 text-sm text-[rgba(153,27,27,1)]">
-                      {confirmError}
-                    </div>
-                  ) : null}
-
-                  <Button type="submit" disabled={confirmLoading || !termsAccepted} className="w-full">
-                    {confirmLoading ? "Confirming..." : "Confirm"}
-                  </Button>
                 </form>
               ) : null}
 
               {step === "done" && trade && quote ? (
-                <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[36px] bg-brand p-7 text-center text-white shadow-[0_24px_70px_rgba(0,0,0,0.08)] lg:max-w-[600px] lg:p-16">
-                  <Confetti />
+                <div className="done-main relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[36px] bg-brand p-7 text-center text-white shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
                   <h2 className="text-2xl font-semibold tracking-tight lg:text-[34px]">
                     That&apos;s it! Your {quote.brand} {quote.model} is now sold.
                   </h2>

@@ -1786,79 +1786,126 @@ textarea:focus-visible {
   }
 
   /* ---- Condition screen: same image-left/details-right layout as storage ---- */
+  /* Matches .storage-main / .value-main exactly so every funnel screen
+     occupies the same section footprint on desktop. */
   .condition-main {
     max-width: none;
-    min-height: auto;
-    padding: 32px 64px;
+    min-height: 690px;
+    padding: 80px;
   }
 
   .condition-layout {
-    max-width: 1320px;
+    max-width: 958px;
     width: 100%;
     flex-direction: row;
     justify-content: center;
-    align-items: flex-start;
-    gap: 48px;
+    align-items: center;
+    gap: 56px;
   }
 
   .condition-layout .device-preview-image {
-    width: 200px;
-    height: 290px;
+    width: 323px;
+    height: 483px;
     flex: none;
   }
 
   .condition-content {
-    width: auto;
-    flex: 1 1 auto;
-    max-width: 1000px;
+    width: 640px;
+    flex: none;
+    max-width: none;
     align-items: flex-start;
     text-align: left;
-    gap: 14px;
   }
 
   .condition-content .device-preview-name {
-    font-size: 36px;
-    line-height: 40px;
+    font-size: 48px;
+    line-height: 60px;
     text-align: left;
   }
 
-  /* Single row across the available width avoids stacking into extra rows
-     that push the Continue button below shorter laptop viewports. */
   .condition-options {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px 16px;
     width: 100%;
   }
 
   .condition-option-card {
-    padding: 10px 8px;
-    min-height: 92px;
+    padding: 16px;
+    min-height: 108px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
   .condition-option-title {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   .condition-option-copy {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    font-size: 11px;
-    line-height: 14px;
+    font-size: 12.5px;
+    line-height: 17px;
   }
 
   .condition-content .storage-continue {
     width: auto;
   }
 
-  /* ---- Checkout screen: shorter card so it fits without scrolling on
-     laptop-height viewports ---- */
-  .checkout-device-visual {
+  /* ---- Plain white funnel screens (congrats/checkout/postage-pack): same
+     footprint as storage/condition/value, no floating card chrome ---- */
+  .journey-plain-card {
+    max-width: none !important;
+    width: 100%;
+    min-height: 690px;
+    padding: 80px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .journey-plain-card .device-visual {
     width: 150px;
     height: 150px;
+  }
+
+  /* ---- Payout ("Almost there to your cash"): two columns so the long
+     form uses the same horizontal space as storage instead of stacking
+     tall enough to need scrolling ---- */
+  .payout-main {
+    max-width: none !important;
+    width: 100%;
+    min-height: 690px;
+    padding: 80px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .payout-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 56px;
+    width: 100%;
+    max-width: 958px;
+  }
+
+  .payout-columns > .payout-col-left,
+  .payout-columns > .payout-col-right {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---- Done screen: same footprint, keeps its brand-blue celebratory card ---- */
+  .done-main {
+    max-width: 600px !important;
+    min-height: 690px;
+    padding: 64px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .summary-row {
