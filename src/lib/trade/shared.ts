@@ -31,6 +31,15 @@ export const deviceConditions = [
   { key: "cracked_not_working", label: "Cracked and not working" },
 ] as const;
 
+// Conditions offered in the UI; the "Damaged" tile maps to the lowest tier so
+// quotes stay conservative until the device is inspected.
+export const selectableConditions = [
+  { key: "brand_new", label: "Brand New" },
+  { key: "excellent", label: "Excellent" },
+  { key: "good", label: "Good" },
+  { key: "cracked_not_working", label: "Damaged" },
+] as const;
+
 export type DeviceCondition = (typeof deviceConditions)[number]["key"];
 
 export const conditionLabels: Record<DeviceCondition, string> = {
@@ -38,8 +47,8 @@ export const conditionLabels: Record<DeviceCondition, string> = {
   excellent: "Excellent",
   good: "Good",
   fair: "Fair",
-  cracked_working: "Cracked but working",
-  cracked_not_working: "Cracked and not working",
+  cracked_working: "Damaged",
+  cracked_not_working: "Damaged",
 };
 
 export type RewardSummary = {

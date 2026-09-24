@@ -314,8 +314,8 @@ h3 {
 }
 
 .ma-header-logo {
-  width: 139px;
-  height: 34px;
+  width: 210px;
+  height: 32px;
   object-fit: contain;
 }
 
@@ -325,6 +325,48 @@ h3 {
   display: flex;
   justify-content: center;
   background: #ffffff;
+}
+
+@keyframes ma-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-hero-inner > h1,
+.landing-hero-inner > p,
+.device-category-section {
+  animation: ma-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-hero-inner > p {
+  animation-delay: 0.12s;
+}
+
+.device-category-section {
+  animation-delay: 0.26s;
+}
+
+.device-category-section::before {
+  content: "";
+  width: 100%;
+  max-width: 1038px;
+  height: 1px;
+  margin-bottom: 20px;
+  background: var(--ma-divider);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-inner > h1,
+  .landing-hero-inner > p,
+  .device-category-section {
+    animation: none;
+  }
 }
 
 .landing-hero-inner {
@@ -923,6 +965,8 @@ textarea:focus-visible {
 }
 
 .spin-wheel {
+  width: 100%;
+  height: auto;
   border-radius: 50%;
   transition: transform 4.2s cubic-bezier(0.12, 0.72, 0.15, 1);
 }
@@ -936,6 +980,90 @@ textarea:focus-visible {
   background: var(--ma-purple);
   border: 1px solid #000000;
   z-index: 2;
+}
+
+.btn-purple {
+  background: var(--ma-purple);
+  color: var(--ma-white);
+  box-shadow: 0 12px 30px rgba(60, 42, 104, 0.25);
+}
+
+.btn-purple:hover {
+  background: #2f2054;
+}
+
+.guide-price-purple {
+  color: var(--ma-purple);
+}
+
+.final-offer-card {
+  width: 100%;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  color: var(--ma-white);
+  background: var(--ma-purple);
+  border-radius: 20px;
+}
+
+.final-offer-label {
+  margin: 0;
+  font: 500 14px/20px var(--ma-font-ui);
+  opacity: 0.85;
+}
+
+.final-offer-amount {
+  font: 700 40px/48px var(--ma-font-ui);
+}
+
+.final-offer-note {
+  margin: 0;
+  font: 400 14px/20px var(--ma-font-ui);
+  opacity: 0.85;
+}
+
+.spin-reveal {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.spin-reward-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: var(--ma-light);
+  border-radius: 24px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.spin-reward-intro {
+  margin: 0;
+  font: 500 14px/20px var(--ma-font-ui);
+  color: var(--ma-dark);
+  text-align: center;
+}
+
+.spin-reward-value {
+  font: 500 40px/44px var(--ma-font-display);
+  color: var(--ma-dark);
+  text-align: center;
+}
+
+.spin-reward-note {
+  margin: 0;
+  font: 600 18px/24px var(--ma-font-ui);
+  color: var(--ma-purple);
+  text-align: center;
 }
 
 .spin-actions {
@@ -1048,9 +1176,11 @@ textarea:focus-visible {
 }
 
 .tradein-promo-cta {
-  width: 236px;
-  min-height: 48px;
-  padding: 17px 39px;
+  width: auto;
+  min-width: 236px;
+  min-height: 52px;
+  padding: 0 32px;
+  white-space: nowrap;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1058,9 +1188,9 @@ textarea:focus-visible {
   border: 0;
   border-radius: 9999px;
   font-weight: 500;
-  font-size: 19px;
-  line-height: 29px;
-  letter-spacing: -0.209px;
+  font-size: 17px;
+  line-height: 24px;
+  letter-spacing: -0.2px;
   color: #070707;
 }
 
@@ -1246,8 +1376,8 @@ textarea:focus-visible {
 }
 
 .ma-footer-logo {
-  width: 152px;
-  height: 36.97px;
+  width: 200px;
+  height: 30px;
   object-fit: contain;
 }
 
@@ -1381,8 +1511,8 @@ textarea:focus-visible {
   }
 
   .ma-header-logo {
-    width: 216px;
-    height: 53px;
+    width: 300px;
+    height: 45px;
   }
 
   .landing-hero {
@@ -1640,27 +1770,40 @@ textarea:focus-visible {
     width: auto;
   }
 
-  /* ---- Spin-the-wheel modal: scale up for desktop viewport ---- */
+  /* ---- Spin-the-wheel modal: full desktop-sized card ---- */
   .spin-modal {
-    max-width: 480px;
+    max-width: 960px;
+    min-height: min(725px, calc(100vh - 96px));
+    display: flex;
   }
 
   .spin-modal-inner {
-    padding: 56px 40px;
-    gap: 28px;
+    padding: 64px 80px;
+    gap: 32px;
+    justify-content: center;
   }
 
   .spin-title {
-    font-size: 32px;
-    line-height: 32px;
+    font-size: 40px;
+    line-height: 44px;
   }
 
   .spin-help {
-    font-size: 15px;
+    max-width: 640px;
+    font-size: 16px;
+    line-height: 24px;
   }
 
   .spin-wheel-wrap {
-    max-width: 360px;
+    max-width: 400px;
+  }
+
+  .spin-reward-card {
+    max-width: 420px;
+  }
+
+  .spin-button {
+    max-width: 238px;
   }
 
   /* ---- Model search screen ---- */
@@ -1795,7 +1938,7 @@ textarea:focus-visible {
   }
 
   .condition-layout {
-    max-width: 958px;
+    max-width: 1100px;
     width: 100%;
     flex-direction: row;
     justify-content: center;
@@ -1810,7 +1953,7 @@ textarea:focus-visible {
   }
 
   .condition-content {
-    width: 640px;
+    width: 720px;
     flex: none;
     max-width: none;
     align-items: flex-start;
@@ -1823,26 +1966,29 @@ textarea:focus-visible {
     text-align: left;
   }
 
+  /* 4 wide cards in a 2x2 grid so each description reads on a single line */
   .condition-options {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
     width: 100%;
+    max-width: none;
   }
 
   .condition-option-card {
-    padding: 16px;
-    min-height: 108px;
+    padding: 22px 28px;
+    min-height: 100px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
   .condition-option-title {
-    font-size: 15px;
+    font-size: 20px;
+    line-height: 26px;
   }
 
   .condition-option-copy {
-    font-size: 12.5px;
-    line-height: 17px;
+    font-size: 14px;
+    line-height: 20px;
   }
 
   .condition-content .storage-continue {
@@ -1898,14 +2044,70 @@ textarea:focus-visible {
     flex-direction: column;
   }
 
-  /* ---- Done screen: same footprint, keeps its brand-blue celebratory card ---- */
-  .done-main {
-    max-width: 600px !important;
-    min-height: 690px;
-    padding: 64px !important;
-    display: flex;
-    flex-direction: column;
+  /* ---- Congrats / checkout / done: phone image always sits left of the content ---- */
+  .journey-split {
+    max-width: 1000px;
+    width: 100%;
+    flex-direction: row;
     justify-content: center;
+    align-items: center;
+    gap: 56px;
+  }
+
+  .journey-split .device-visual {
+    width: 323px;
+    height: 483px;
+    flex: none;
+    border-radius: 0;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .journey-split .device-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .journey-split-content {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 640px;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .journey-split-content .guide-price {
+    text-align: left;
+    font-size: 64px;
+    line-height: 72px;
+  }
+
+  /* Done screen is plain white on desktop like every other funnel screen */
+  .done-main {
+    background: var(--ma-white) !important;
+    color: var(--ma-dark) !important;
+  }
+
+  .done-main .done-title {
+    font-size: 40px;
+    line-height: 48px;
+    color: var(--ma-dark);
+  }
+
+  .done-main .done-copy {
+    font-size: 16px;
+    line-height: 24px;
+    color: var(--ma-grey);
+  }
+
+  .done-main .done-notice {
+    padding: 20px 24px;
+    font-size: 14px;
+    line-height: 20px;
+    background: var(--ma-section);
+    color: var(--ma-dark);
   }
 
   .summary-row {

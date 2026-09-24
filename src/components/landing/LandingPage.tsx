@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { type LandingPageConfig } from "@/lib/landing-pages";
 import {
   conditionLabels,
-  deviceConditions,
+  selectableConditions,
   formatCurrency,
   getCategoryLabel,
   POSTAGE_PACK_COST_GBP,
@@ -184,8 +184,8 @@ const conditionDescriptions: Record<DeviceCondition, string> = {
   excellent: "Fully working with very light signs of use.",
   good: "Fully working with visible everyday wear.",
   fair: "Working but with heavier cosmetic wear.",
-  cracked_working: "Screen or body damage, but the device still functions.",
-  cracked_not_working: "Device does not power on or has major functional issues.",
+  cracked_working: "Cracked screen, body damage or a fault.",
+  cracked_not_working: "Cracked screen, body damage or a fault.",
 };
 
 
@@ -238,26 +238,6 @@ function getPromoContent(category: DeviceCategory, cfg: LandingPageConfig) {
     ctaLabel: cfg.promoCtaLabel,
     imageUrl: cfg.promoImageUrl,
   };
-}
-
-function Confetti() {
-  const pieces = useMemo(() => Array.from({ length: 28 }, (_, i) => i), []);
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {pieces.map((i) => (
-        <span
-          key={i}
-          className="absolute top-0 h-2 w-2 rounded-sm opacity-0 animate-[confetti_950ms_ease-out_forwards]"
-          style={{
-            left: `${(i * 97) % 100}%`,
-            background: i % 3 === 0 ? "var(--brand)" : i % 3 === 1 ? "var(--brand-light)" : "var(--brand-2)",
-            animationDelay: `${(i % 10) * 45}ms`,
-            transform: `rotate(${(i * 37) % 360}deg)`,
-          }}
-        />
-      ))}
-    </div>
-  );
 }
 
 function TradeInProgress({ step, onNavigate }: { step: JourneyStep; onNavigate: (step: JourneyStep) => void }) {
@@ -343,8 +323,8 @@ function LogoOnlyHeader() {
       <Image
         src="/brand/logo-horizontal.png"
         alt="Mobile Arcade"
-        width={139}
-        height={34}
+        width={900}
+        height={135}
         className="ma-header-logo"
         priority
       />
@@ -536,8 +516,8 @@ function MobileArcadeFooter() {
           <Image
             src="/brand/logo-horizontal.png"
             alt="Mobile Arcade"
-            width={152}
-            height={37}
+            width={900}
+            height={135}
             className="ma-footer-logo"
           />
           <p className="ma-footer-description">
@@ -1258,7 +1238,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
           <div>
             <SmallLabel>Condition</SmallLabel>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {deviceConditions.map((item) => (
+              {selectableConditions.map((item) => (
                 <button
                   key={item.key}
                   type="button"
@@ -1322,7 +1302,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
           <TradeInProgress step={step} onNavigate={navigateToStep} />
 
           <Container className="pb-[48px] pt-[8px]">
-            <div className="mx-auto max-w-xl">
+            <div className="mx-auto max-w-xl lg:max-w-none">
               {step === "model" ? (
                 <div className="model-search-main mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-4 py-8 text-center">
                   <div className="flex w-full flex-col items-center gap-5">
@@ -1421,7 +1401,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       </div>
 
                       <div className="condition-options">
-                        {deviceConditions.map((item) => (
+                        {selectableConditions.map((item) => (
                           <button
                             key={item.key}
                             type="button"
@@ -1589,86 +1569,104 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
               {step === "congrats" && quote ? (
                 <div className="journey-plain-card relative mx-auto flex w-full max-w-[420px] flex-col items-center overflow-hidden rounded-[36px] bg-white px-6 py-10 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
-                  <div className="device-visual">
-                    <Image
-                      src={getDeviceImageSrc(quote)}
-                      alt={`${quote.brand} ${quote.model} placeholder`}
-                      width={200}
-                      height={200}
-                      unoptimized
-                    />
-                  </div>
-                  <h2 className="mt-6 font-sans text-[26px] font-normal leading-[1.3] text-[#1D1D1F] lg:mt-10 lg:text-[34px]">
-                    Congratulations!
-                  </h2>
-                  <p className="mt-2 max-w-[340px] text-[16px] leading-6 text-[#6E6E73] lg:max-w-[420px] lg:text-[18px]">
-                    Your {quote.brand} {quote.model} is sold for up to
-                  </p>
-                  <div className="guide-price mt-2 lg:text-[48px]">{formatCurrency(quote.cashOfferGbp)}</div>
-                  <p className="mt-3 max-w-[340px] text-[13px] leading-5 text-[#6E6E73] lg:max-w-[420px] lg:text-[14px]">
-                    Every seller gets a free spin! Play our prize wheel for a bonus voucher, cash top-up,
-                    or mystery bag worth up to £600.
-                  </p>
-                  <div className="mt-6 flex w-full flex-col gap-3 lg:mt-10 lg:max-w-[320px]">
-                    <Button type="button" onClick={startSpin} className="w-full">
-                      Spin the wheel
-                    </Button>
+                  <div className="journey-split flex w-full flex-col items-center">
+                    <div className="device-visual">
+                      <Image
+                        src={getDeviceImageSrc(quote)}
+                        alt={`${quote.brand} ${quote.model}`}
+                        width={323}
+                        height={483}
+                        unoptimized
+                      />
+                    </div>
+                    <div className="journey-split-content flex flex-col items-center">
+                      <h2 className="mt-6 font-sans text-[26px] font-normal leading-[1.3] text-[#1D1D1F] lg:mt-0 lg:text-[48px] lg:leading-[60px]">
+                        Congratulations!
+                      </h2>
+                      <p className="mt-2 max-w-[340px] text-[16px] leading-6 text-[#6E6E73] lg:max-w-none lg:text-[20px]">
+                        Your {quote.brand} {quote.model} is sold for up to
+                      </p>
+                      <div className="guide-price guide-price-purple mt-2">{formatCurrency(quote.cashOfferGbp)}</div>
+                      <p className="mt-3 max-w-[340px] text-[13px] leading-5 text-[#6E6E73] lg:max-w-[520px] lg:text-[16px] lg:leading-6">
+                        Every seller gets a free spin! Play our prize wheel for a bonus voucher, cash top-up,
+                        or mystery bag worth up to £600.
+                      </p>
+                      <div className="mt-6 flex w-full flex-col gap-3 lg:mt-8 lg:max-w-[320px]">
+                        <Button type="button" onClick={startSpin} className="btn-purple w-full">
+                          Spin the wheel
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : null}
 
               {step === "checkout" && quote ? (
                 <div className="journey-plain-card mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
-                  <div className="lg:mx-auto lg:w-full lg:max-w-[420px]">
+                  <div className="journey-split flex w-full flex-col items-center">
                     <div className="mx-auto device-visual">
                       <Image
                         src={getDeviceImageSrc(quote)}
-                        alt={`${quote.brand} ${quote.model} placeholder`}
-                        width={200}
-                        height={200}
+                        alt={`${quote.brand} ${quote.model}`}
+                        width={323}
+                        height={483}
                         unoptimized
                       />
                       <span className="device-visual-badge">Sold</span>
                     </div>
 
-                    <div className="mt-6 space-y-1.5 text-left lg:mt-6">
-                      <div className="summary-row">
-                        <span className="summary-row-label">Device</span>
-                        <span className="summary-row-value">{quote.brand} {quote.model}</span>
-                      </div>
-                      {quote.storageOption ? (
-                        <div className="summary-row">
-                          <span className="summary-row-label">Storage</span>
-                          <span className="summary-row-value">{quote.storageOption}</span>
+                    <div className="journey-split-content w-full">
+                      <div className="final-offer-card mt-6 lg:mt-0">
+                        <p className="final-offer-label">Your final offer</p>
+                        <div className="final-offer-amount">
+                          {formatCurrency(quote.cashOfferGbp + (quote.reward?.isCash ? quote.reward.valueGbp : 0))}
                         </div>
-                      ) : null}
-                      <div className="summary-row">
-                        <span className="summary-row-label">Condition</span>
-                        <span className="summary-row-value">{conditionLabels[quote.condition]}</span>
+                        {quote.reward && quote.reward.type !== "none" ? (
+                          <p className="final-offer-note">
+                            {formatCurrency(quote.cashOfferGbp)} offer + {quote.reward.label}
+                          </p>
+                        ) : null}
                       </div>
-                      <div className="summary-row">
-                        <span className="summary-row-label">Sold for</span>
-                        <span className="summary-row-value text-brand">up to {formatCurrency(quote.cashOfferGbp)}</span>
-                      </div>
-                      {quote.reward && quote.reward.type !== "none" ? (
-                        <div className="summary-row">
-                          <span className="summary-row-label">Bonus reward</span>
-                          <span className="summary-row-value">{quote.reward.label}</span>
-                        </div>
-                      ) : null}
-                    </div>
 
-                    <div className="mt-6 text-left lg:mt-6">
-                      <h3 className="text-base font-semibold text-[#1D1D1F]">
-                        Do you have safe packaging (e.g. the original box) to send your device in?
-                      </h3>
-                      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                        <Button type="button" onClick={() => choosePackaging(true)} className="w-full">
-                          Yes, I have packaging
-                        </Button>
-                        <Button type="button" variant="secondary" onClick={() => choosePackaging(false)} className="w-full">
-                          No, send me a pack
-                        </Button>
+                      <div className="mt-4 space-y-1.5 text-left">
+                        <div className="summary-row">
+                          <span className="summary-row-label">Device</span>
+                          <span className="summary-row-value">{quote.brand} {quote.model}</span>
+                        </div>
+                        {quote.storageOption ? (
+                          <div className="summary-row">
+                            <span className="summary-row-label">Storage</span>
+                            <span className="summary-row-value">{quote.storageOption}</span>
+                          </div>
+                        ) : null}
+                        <div className="summary-row">
+                          <span className="summary-row-label">Condition</span>
+                          <span className="summary-row-value">{conditionLabels[quote.condition]}</span>
+                        </div>
+                        <div className="summary-row">
+                          <span className="summary-row-label">Sold for</span>
+                          <span className="summary-row-value">up to {formatCurrency(quote.cashOfferGbp)}</span>
+                        </div>
+                        {quote.reward && quote.reward.type !== "none" ? (
+                          <div className="summary-row">
+                            <span className="summary-row-label">Bonus reward</span>
+                            <span className="summary-row-value">{quote.reward.label}</span>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-6 text-left">
+                        <h3 className="text-base font-semibold text-[#1D1D1F]">
+                          Do you have safe packaging (e.g. the original box) to send your device in?
+                        </h3>
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                          <Button type="button" onClick={() => choosePackaging(true)} className="w-full">
+                            Yes, I have packaging
+                          </Button>
+                          <Button type="button" variant="secondary" onClick={() => choosePackaging(false)} className="w-full">
+                            No, send me a pack
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1725,7 +1723,6 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                 >
                   <div className="payout-columns space-y-4 lg:space-y-0">
                     <div className="payout-col-left space-y-4">
-                      <SmallLabel>Almost there to your cash</SmallLabel>
                       <h2 className="text-2xl font-semibold tracking-tight text-[#1D1D1F] lg:text-3xl">
                         A few details to pay you
                       </h2>
@@ -1820,44 +1817,57 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               ) : null}
 
               {step === "done" && trade && quote ? (
-                <div className="done-main relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[36px] bg-brand p-7 text-center text-white shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
-                  <h2 className="text-2xl font-semibold tracking-tight lg:text-[34px]">
-                    That&apos;s it! Your {quote.brand} {quote.model} is now sold.
-                  </h2>
-                  <p className="mt-4 text-sm leading-6 text-white/90 lg:text-base">
-                    Nice one &mdash; you just supported a local British business, saved time, helped the
-                    planet, and got real money for a device that would otherwise sit in a drawer.
-                  </p>
-                  <p className="mt-4 text-sm leading-6 text-white/90 lg:text-base">
-                    Our team will get in touch to confirm your device and settle funds directly to the bank
-                    details you provided. Reference:{" "}
-                    <span className="font-semibold">{trade.tradeReferenceId}</span>
-                  </p>
-                  <div className="mt-6 rounded-2xl bg-white/10 p-4 text-left text-xs leading-5 text-white lg:mt-8 lg:p-6 lg:text-sm">
-                    We will never call you to ask for your bank card details, ask you to move funds into
-                    another account, or ask for any payment before we pay you.
-                  </div>
+                <div className="journey-plain-card done-main mx-auto w-full max-w-[420px] rounded-[36px] bg-brand p-7 text-center text-white shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
+                  <div className="journey-split flex w-full flex-col items-center">
+                    <div className="device-visual done-device hidden lg:block">
+                      <Image
+                        src={getDeviceImageSrc(quote)}
+                        alt={`${quote.brand} ${quote.model}`}
+                        width={323}
+                        height={483}
+                        unoptimized
+                      />
+                    </div>
+                    <div className="journey-split-content w-full">
+                      <h2 className="done-title text-2xl font-semibold tracking-tight">
+                        That&apos;s it! Your {quote.brand} {quote.model} is now sold.
+                      </h2>
+                      <p className="done-copy mt-4 text-sm leading-6 text-white/90">
+                        Nice one &mdash; you just supported a local British business, saved time, helped the
+                        planet, and got real money for a device that would otherwise sit in a drawer.
+                      </p>
+                      <p className="done-copy mt-4 text-sm leading-6 text-white/90">
+                        Our team will get in touch to confirm your device and settle funds directly to the bank
+                        details you provided. Reference:{" "}
+                        <span className="font-semibold">{trade.tradeReferenceId}</span>
+                      </p>
+                      <div className="done-notice mt-6 rounded-2xl bg-white/10 p-4 text-left text-xs leading-5 text-white">
+                        We will never call you to ask for your bank card details, ask you to move funds into
+                        another account, or ask for any payment before we pay you.
+                      </div>
 
-                  <div
-                    className="mt-6 rounded-2xl p-5 text-left lg:mt-6 lg:p-6"
-                    style={{ background: "var(--ma-purple)" }}
-                  >
-                    <p className="text-sm font-semibold text-white lg:text-base">
-                      Got another old phone gathering dust?
-                    </p>
-                    <p className="mt-2 text-xs leading-5 text-white/85 lg:text-sm">
-                      Sell it alongside this one &mdash; even if it&apos;s the one buried in your mum&apos;s
-                      attic &mdash; and unlock bulk pricing on your next trade-in.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => startFunnelForCategory(deviceCategory)}
-                      className="mt-4 w-full lg:mx-auto lg:max-w-[320px]"
-                      style={{ color: "var(--ma-purple)" }}
-                    >
-                      Start another quote
-                    </Button>
+                      <div
+                        className="mt-6 rounded-2xl p-5 text-left"
+                        style={{ background: "var(--ma-purple)" }}
+                      >
+                        <p className="text-sm font-semibold text-white lg:text-base">
+                          Got another old phone gathering dust?
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-white/85 lg:text-sm">
+                          Sell it alongside this one &mdash; even if it&apos;s the one buried in your mum&apos;s
+                          attic &mdash; and unlock bulk pricing on your next trade-in.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => startFunnelForCategory(deviceCategory)}
+                          className="mt-4 w-full lg:max-w-[320px]"
+                          style={{ color: "var(--ma-purple)" }}
+                        >
+                          Start another quote
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -1899,18 +1909,20 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                   </div>
                 </>
               ) : (
-                <div className="relative w-full py-6 text-center">
-                  <Confetti />
-                  <SmallLabel>You won</SmallLabel>
-                  <div className="mt-3 text-3xl font-semibold tracking-tight text-brand">
-                    {quote?.reward?.label}
+                <div className="spin-reveal">
+                  <h2 className="spin-title">You won!</h2>
+                  <div className="spin-reward-card">
+                    <p className="spin-reward-intro">Great spin! Your bonus reward is ready.</p>
+                    <div className="spin-reward-value">{quote?.reward?.label}</div>
+                    <p className="spin-reward-note">Added to your offer</p>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-muted">
-                    This has been added to your quote and stored against your reference.
+                  <p className="spin-help">
+                    This reward is on top of your cash offer and will be emailed as a code once your
+                    trade-in is confirmed.
                   </p>
-                  <Button type="button" onClick={continueAfterReward} className="mt-6 w-full">
-                    Continue to checkout
-                  </Button>
+                  <button type="button" onClick={continueAfterReward} className="spin-button">
+                    See final offer
+                  </button>
                 </div>
               )}
             </div>
