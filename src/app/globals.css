@@ -347,15 +347,6 @@ h3 {
   animation-delay: 0.18s;
 }
 
-.device-category-section::before {
-  content: "";
-  width: 100%;
-  max-width: 1038px;
-  height: 1px;
-  margin-bottom: 20px;
-  background: var(--ma-divider);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .landing-hero-inner > h1,
   .landing-hero-inner > p {
@@ -2128,5 +2119,68 @@ textarea:focus-visible {
   .summary-row {
     padding: 8px 16px;
     font-size: 13px;
+  }
+  /* ================= One shared frame for every split screen =================
+     Storage, condition, value, congrats, checkout, postage pack and done all
+     use the same section size, image position and content column, so the phone
+     never moves between screens - only the right-hand content changes. */
+  .storage-main,
+  .value-main,
+  .condition-main,
+  .journey-plain-card {
+    max-width: none !important;
+    width: 100%;
+    min-height: 690px;
+    padding: 80px 32px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .storage-layout,
+  .value-layout,
+  .condition-layout,
+  .journey-split {
+    width: 100%;
+    max-width: 1040px;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 56px;
+  }
+
+  .storage-layout .device-preview-image,
+  .condition-layout .device-preview-image,
+  .journey-split .device-visual {
+    width: 323px;
+    height: 483px;
+    flex: none;
+    margin: 0;
+  }
+
+  .value-layout .device-preview {
+    width: 323px;
+    height: 483px;
+    flex: none;
+  }
+
+  .storage-content,
+  .condition-content,
+  .value-content,
+  .journey-split-content {
+    width: 660px;
+    flex: none;
+    max-width: none;
+    min-height: 483px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .journey-split-content > * {
+    width: 100%;
   }
 }
