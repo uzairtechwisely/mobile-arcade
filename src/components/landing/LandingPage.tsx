@@ -1306,7 +1306,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               {step === "model" ? (
                 <div className="model-search-main mx-auto flex w-full max-w-[402px] flex-col items-center bg-white px-4 py-8 text-center">
                   <div className="flex w-full flex-col items-center gap-5">
-                    <div className="flex w-full max-w-[320px] flex-col items-center gap-3.5">
+                    <div className="model-search-heading flex w-full max-w-[320px] flex-col items-center gap-3.5">
                       <h2 className="model-search-title w-full font-sans text-[28px] font-medium leading-[28px] text-[#1D1D1F]">
                         {getModelStepTitle(deviceCategory)}
                       </h2>
@@ -1675,8 +1675,17 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
               {step === "postagePack" && quote ? (
                 <div className="journey-plain-card mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
-                  <div className="lg:mx-auto lg:w-full lg:max-w-[460px]">
-                    <SmallLabel>Postage pack</SmallLabel>
+                  <div className="journey-split flex w-full flex-col items-center">
+                    <div className="device-visual hidden lg:block">
+                      <Image
+                        src={getDeviceImageSrc(quote)}
+                        alt={`${quote.brand} ${quote.model}`}
+                        width={323}
+                        height={483}
+                        unoptimized
+                      />
+                    </div>
+                    <div className="journey-split-content w-full">
                     <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#1D1D1F] lg:text-3xl">
                       A protective pack costs {formatCurrency(POSTAGE_PACK_COST_GBP)}
                     </h2>
@@ -1712,6 +1721,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     <p className="mt-4 text-xs leading-5 text-muted">
                       Card payment is securely handled by Stripe. We never see or store your card details.
                     </p>
+                    </div>
                   </div>
                 </div>
               ) : null}
