@@ -1678,7 +1678,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               {step === "postagePack" && quote ? (
                 <div className="journey-plain-card mx-auto w-full max-w-[420px] rounded-[36px] bg-white p-6 text-left shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
                   <div className="journey-split flex w-full flex-col items-center">
-                    <div className="device-visual hidden lg:block">
+                    <div className="device-visual">
                       <Image
                         src={getDeviceImageSrc(quote)}
                         alt={`${quote.brand} ${quote.model}`}
@@ -1831,7 +1831,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
               {step === "done" && trade && quote ? (
                 <div className="journey-plain-card done-main mx-auto w-full max-w-[420px] rounded-[36px] bg-brand p-7 text-center text-white shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
                   <div className="journey-split flex w-full flex-col items-center">
-                    <div className="device-visual done-device hidden lg:block">
+                    <div className="device-visual done-device">
                       <Image
                         src={getDeviceImageSrc(quote)}
                         alt={`${quote.brand} ${quote.model}`}
