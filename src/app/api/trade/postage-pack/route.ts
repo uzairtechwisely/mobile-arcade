@@ -25,6 +25,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = bodySchema.parse(body);
+    const requestOrigin = new URL(request.url).origin;
+    const allowedOrigins = [requestOrigin, process.env.NEXT_PUBLIC_SITE_URL].filter(Boolean);
+    if (!allowedOrigins.includes(new URL(parsed.returnUrl).origin)) {
+      return NextResponse.json({ error: "Invalid return address." }, { status: 400 });
+    }
     const stripe = new Stripe(secretKey);
 
     const session = await stripe.checkout.sessions.create({

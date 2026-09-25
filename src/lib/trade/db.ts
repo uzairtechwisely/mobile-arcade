@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
-import { getDeviceCatalogSource } from "@/lib/trade/catalog-source";
+import { applyPriceList } from "@/lib/trade/catalog-store";
+import { parsePriceListFile } from "@/lib/trade/price-list";
 
 function getLocalDatabasePath() {
   if (process.env.VERCEL) {
@@ -26,20 +27,48 @@ const client = createClient(
 let initPromise: Promise<void> | null = null;
 
 async function createTables(db: Client) {
+  // Catalog: one row per model, one price row per model + storage + condition.
+  // Populated only through applyPriceList (seed file today, admin upload later).
   await db.execute(`
-    CREATE TABLE IF NOT EXISTS device_models (
+    CREATE TABLE IF NOT EXISTS catalog_models (
       id TEXT PRIMARY KEY,
       category TEXT NOT NULL,
       brand TEXT NOT NULL,
       model TEXT NOT NULL,
       image_url TEXT,
+      featured INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
       search_text TEXT NOT NULL,
-      system_max_brand_new INTEGER NOT NULL,
-      system_max_excellent INTEGER NOT NULL,
-      system_max_good INTEGER NOT NULL,
-      system_max_fair INTEGER NOT NULL,
-      system_max_cracked_working INTEGER NOT NULL,
-      system_max_cracked_not_working INTEGER NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS catalog_prices (
+      model_id TEXT NOT NULL,
+      storage TEXT NOT NULL,
+      condition TEXT NOT NULL,
+      price_gbp INTEGER NOT NULL,
+      import_id TEXT,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (model_id, storage, condition),
+      FOREIGN KEY (model_id) REFERENCES catalog_models(id)
+    )
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS price_imports (
+      id TEXT PRIMARY KEY,
+      source TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      models_in_file INTEGER NOT NULL,
+      models_added INTEGER NOT NULL,
+      models_updated INTEGER NOT NULL,
+      models_deactivated INTEGER NOT NULL,
+      price_rows INTEGER NOT NULL,
+      issues_json TEXT,
       created_at TEXT NOT NULL
     )
   `);
@@ -60,7 +89,7 @@ async function createTables(db: Client) {
       reward_value_gbp INTEGER,
       reward_is_cash INTEGER,
       created_at TEXT NOT NULL,
-      FOREIGN KEY (device_model_id) REFERENCES device_models(id)
+      FOREIGN KEY (device_model_id) REFERENCES catalog_models(id)
     )
   `);
 
@@ -101,17 +130,49 @@ async function createTables(db: Client) {
     )
   `);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS email_log (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      recipient TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      reference TEXT,
+      status TEXT NOT NULL,
+      error TEXT,
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS stripe_events (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      quote_id TEXT,
+      payment_intent_id TEXT,
+      amount_total INTEGER,
+      currency TEXT,
+      payment_status TEXT,
+      created_at TEXT NOT NULL
+    )
+  `);
+
   await db.execute(
-    "CREATE INDEX IF NOT EXISTS idx_device_models_category ON device_models(category)",
+    "CREATE INDEX IF NOT EXISTS idx_catalog_models_category ON catalog_models(category, active)",
   );
   await db.execute(
-    "CREATE INDEX IF NOT EXISTS idx_device_models_search ON device_models(search_text)",
+    "CREATE INDEX IF NOT EXISTS idx_catalog_models_search ON catalog_models(search_text)",
   );
 
   try {
     await db.execute(
       "ALTER TABLE quotes ADD COLUMN flow_mode TEXT NOT NULL DEFAULT 'auto_accept_with_bonus'",
     );
+  } catch {
+    // Column already exists in previously initialized databases.
+  }
+
+  try {
+    await db.execute("ALTER TABLE support_requests ADD COLUMN storage_option TEXT");
   } catch {
     // Column already exists in previously initialized databases.
   }
@@ -165,43 +226,19 @@ async function createTables(db: Client) {
   }
 }
 
+// First run only: load the bundled price list so a fresh database is never empty.
+// Later price changes go through applyPriceList (admin upload / CLI), not this file.
 async function seedDatabase(db: Client) {
-  for (const item of getDeviceCatalogSource()) {
-    await db.execute({
-      sql: `
-        INSERT OR REPLACE INTO device_models (
-          id,
-          category,
-          brand,
-          model,
-          image_url,
-          search_text,
-          system_max_brand_new,
-          system_max_excellent,
-          system_max_good,
-          system_max_fair,
-          system_max_cracked_working,
-          system_max_cracked_not_working,
-          created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      args: [
-        item.id,
-        item.category,
-        item.brand,
-        item.model,
-        item.imageUrl ?? null,
-        `${item.brand} ${item.model}`.toLowerCase(),
-        item.systemMaxBrandNew,
-        item.systemMaxExcellent,
-        item.systemMaxGood,
-        item.systemMaxFair,
-        item.systemMaxCrackedWorking,
-        item.systemMaxCrackedNotWorking,
-        new Date().toISOString(),
-      ],
-    });
-  }
+  const count = await db.execute("SELECT COUNT(*) AS n FROM catalog_models");
+  if (Number(count.rows[0]?.n ?? 0) > 0) return;
+
+  const seedFile = path.join(process.cwd(), "data", "catalog", "phones-price-list.csv");
+  if (!fs.existsSync(seedFile)) return;
+
+  await applyPriceList(db, parsePriceListFile(fs.readFileSync(seedFile)), {
+    mode: "merge",
+    source: "seed:phones-price-list.csv",
+  });
 }
 
 async function initDatabase() {

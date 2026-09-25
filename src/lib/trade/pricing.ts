@@ -1,13 +1,4 @@
-import type { DeviceCondition, QuoteFlowMode } from "@/lib/trade/shared";
-
-export type DevicePricingMatrix = {
-  brand_new: number;
-  excellent: number;
-  good: number;
-  fair: number;
-  cracked_working: number;
-  cracked_not_working: number;
-};
+import type { QuoteFlowMode } from "@/lib/trade/shared";
 
 export type ComputedQuote = {
   systemMaximumGbp: number;
@@ -16,19 +7,11 @@ export type ComputedQuote = {
   flowMode: QuoteFlowMode;
 };
 
-export function getSystemMaximumForCondition(
-  pricing: DevicePricingMatrix,
-  condition: DeviceCondition,
-) {
-  return pricing[condition];
-}
-
+// systemMaximumGbp is the catalog price for the exact model + storage + condition.
 export function computeQuoteOutcome(
   requestedAmountGbp: number,
-  pricing: DevicePricingMatrix,
-  condition: DeviceCondition,
+  systemMaximumGbp: number,
 ): ComputedQuote {
-  const systemMaximumGbp = getSystemMaximumForCondition(pricing, condition);
   const isAboveSystemMaximum = requestedAmountGbp > systemMaximumGbp;
 
   return {

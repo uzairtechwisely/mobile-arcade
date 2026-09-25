@@ -13,7 +13,6 @@ import {
   getCategoryLabel,
   POSTAGE_PACK_COST_GBP,
   REWARD_TIERS,
-  storageOptionsByCategory,
   type DeviceCondition,
   type QuoteSummary,
   type TradeConfirmation,
@@ -27,6 +26,7 @@ type DeviceSuggestion = {
   category: DeviceCategory;
   label: string;
   imageUrl?: string | null;
+  storageOptions?: string[];
 };
 
 type JourneyStep =
@@ -98,31 +98,6 @@ const deviceTypes: Array<{
   { key: "tablet", label: "Tablets/iPad", iconSrc: "/brand/icons/devices-repair/tab-icon.png", iconWidth: 24, iconHeight: 26 },
   { key: "gaming_device", label: "Gaming", iconSrc: "/brand/icons/devices-repair/game-icon.png", iconWidth: 28, iconHeight: 28 },
 ];
-
-const featuredDevicePicks: Record<DeviceCategory, DeviceSuggestion[]> = {
-  phone: [
-    { id: "apple-iphone-16-pro", brand: "Apple", model: "iPhone 16 Pro", category: "phone", label: "Apple iPhone 16 Pro" },
-    { id: "apple-iphone-15-pro-max", brand: "Apple", model: "iPhone 15 Pro Max", category: "phone", label: "Apple iPhone 15 Pro Max" },
-    { id: "apple-iphone-15", brand: "Apple", model: "iPhone 15", category: "phone", label: "Apple iPhone 15" },
-    { id: "samsung-galaxy-s24-ultra", brand: "Samsung", model: "Galaxy S24 Ultra", category: "phone", label: "Samsung Galaxy S24 Ultra" },
-    { id: "samsung-galaxy-z-flip-6", brand: "Samsung", model: "Galaxy Z Flip 6", category: "phone", label: "Samsung Galaxy Z Flip 6" },
-  ],
-  laptop: [
-    { id: "apple-macbook-air-m2", brand: "Apple", model: "MacBook Air M2", category: "laptop", label: "Apple MacBook Air M2" },
-    { id: "apple-macbook-pro-14", brand: "Apple", model: "MacBook Pro 14", category: "laptop", label: "Apple MacBook Pro 14" },
-    { id: "dell-xps-13", brand: "Dell", model: "XPS 13", category: "laptop", label: "Dell XPS 13" },
-  ],
-  tablet: [
-    { id: "apple-ipad-air-5", brand: "Apple", model: "iPad Air 5", category: "tablet", label: "Apple iPad Air 5" },
-    { id: "apple-ipad-10", brand: "Apple", model: "iPad 10th Gen", category: "tablet", label: "Apple iPad 10th Gen" },
-    { id: "samsung-tab-s9", brand: "Samsung", model: "Galaxy Tab S9", category: "tablet", label: "Samsung Galaxy Tab S9" },
-  ],
-  gaming_device: [
-    { id: "sony-ps5", brand: "Sony", model: "PlayStation 5", category: "gaming_device", label: "Sony PlayStation 5" },
-    { id: "microsoft-xbox-series-x", brand: "Microsoft", model: "Xbox Series X", category: "gaming_device", label: "Microsoft Xbox Series X" },
-    { id: "nintendo-switch-oled", brand: "Nintendo", model: "Switch OLED", category: "gaming_device", label: "Nintendo Switch OLED" },
-  ],
-};
 
 const conditionDescriptions: Record<DeviceCondition, string> = {
   brand_new: "Unused, in original packaging with all accessories.",
@@ -555,7 +530,7 @@ function MobileArcadeFooter() {
   );
 }
 
-type SupportReason = "typing_error" | "unsupported_device" | "system_down";
+type SupportReason = "typing_error" | "unsupported_device" | "system_down" | "device_enquiry";
 type SupportModalState = {
   title: string;
   message: string;
@@ -629,7 +604,13 @@ function resolveSupportModal(error: unknown): SupportModalState {
   };
 }
 
-const SPIN_SEGMENT_ANGLE = 360 / REWARD_TIERS.length;
+// Each reward appears twice on the wheel (6 segments), alternating.
+const SPIN_SEGMENTS = [...REWARD_TIERS, ...REWARD_TIERS];
+const SPIN_SEGMENT_ANGLE = 360 / SPIN_SEGMENTS.length;
+const SPIN_MIN_SPEED = 0.6; // deg per ms
+const SPIN_MAX_SPEED = 2.4;
+const SPIN_MIN_DRAG_DEG = 12;
+const SPIN_BUTTON_SPEED = 1.1;
 const SPIN_SEGMENT_COLORS = ["#006AFC", "#EAEBEF"];
 const SPIN_WHEEL_SIZE = 288;
 const SPIN_WHEEL_RADIUS = SPIN_WHEEL_SIZE / 2;
@@ -638,10 +619,11 @@ const SPIN_WHEEL_RADIUS = SPIN_WHEEL_SIZE / 2;
 const SPIN_POINTER_ANGLE = 90;
 
 function getRewardTierLabel(tier: (typeof REWARD_TIERS)[number]) {
-  if (tier.isCash) return `£${tier.valueGbp}`;
-  if (tier.type === "mystery_bag") return "Mystery";
+  if (tier.type === "gift_box") return "Gift Box";
   return `£${tier.valueGbp}`;
 }
+
+const mod360 = (n: number) => ((n % 360) + 360) % 360;
 
 // angle: degrees clockwise from 12 o'clock, matching how the wheel's own
 // rotation is expressed elsewhere in this file.
@@ -657,7 +639,7 @@ function describeWedgePath(cx: number, cy: number, r: number, startAngle: number
   return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
 }
 
-function SpinWheelSvg({ rotation }: { rotation: number }) {
+function SpinWheelSvg({ wheelRef }: { wheelRef: React.RefObject<SVGSVGElement | null> }) {
   const cx = SPIN_WHEEL_RADIUS;
   const cy = SPIN_WHEEL_RADIUS;
   return (
@@ -666,14 +648,14 @@ function SpinWheelSvg({ rotation }: { rotation: number }) {
       width={SPIN_WHEEL_SIZE}
       height={SPIN_WHEEL_SIZE}
       className="spin-wheel"
-      style={{ transform: `rotate(${rotation}deg)` }}
+      ref={wheelRef}
     >
-      {REWARD_TIERS.map((tier, i) => {
+      {SPIN_SEGMENTS.map((tier, i) => {
         const startAngle = i * SPIN_SEGMENT_ANGLE;
         const endAngle = startAngle + SPIN_SEGMENT_ANGLE;
         const labelPoint = polarPoint(cx, cy, SPIN_WHEEL_RADIUS * 0.62, startAngle + SPIN_SEGMENT_ANGLE / 2);
         return (
-          <g key={tier.label}>
+          <g key={`${tier.label}-${i}`}>
             <path
               d={describeWedgePath(cx, cy, SPIN_WHEEL_RADIUS, startAngle, endAngle)}
               fill={SPIN_SEGMENT_COLORS[i % 2]}
@@ -721,7 +703,20 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
   const [spinOpen, setSpinOpen] = useState(false);
   const [spinning, setSpinning] = useState(false);
-  const [spinRotation, setSpinRotation] = useState(0);
+  const [spinHintDismissed, setSpinHintDismissed] = useState(false);
+  const [spinDragging, setSpinDragging] = useState(false);
+  const wheelRef = useRef<SVGSVGElement | null>(null);
+  const wheelAngleRef = useRef(0);
+  const spinRafRef = useRef(0);
+  const dragRef = useRef<{
+    pointerId: number;
+    cx: number;
+    cy: number;
+    startAngle: number;
+    lastTheta: number;
+    total: number;
+    samples: Array<{ t: number; a: number }>;
+  } | null>(null);
   const [rewardRevealed, setRewardRevealed] = useState(false);
   const [rewardLoading, setRewardLoading] = useState(false);
   const [spinError, setSpinError] = useState<string | null>(null);
@@ -747,6 +742,8 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   const [supportName, setSupportName] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
   const [supportMobile, setSupportMobile] = useState("");
+  const [supportModel, setSupportModel] = useState("");
+  const [supportStorage, setSupportStorage] = useState("");
   const [supportSubmitLoading, setSupportSubmitLoading] = useState(false);
   const [supportSuccessMessage, setSupportSuccessMessage] = useState<string | null>(null);
   const [supportFormError, setSupportFormError] = useState<string | null>(null);
@@ -823,7 +820,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
         setSuggestions(data.models ?? []);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
-          setSuggestions(featuredDevicePicks[deviceCategory]);
+          setSuggestions([]);
         }
       } finally {
         setSearchLoading(false);
@@ -836,7 +833,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     };
   }, [deviceCategory, dropdownOpen, modelQuery]);
 
-  const storageChoices = storageOptionsByCategory[deviceCategory];
+  const storageChoices = selectedModel?.storageOptions ?? (selectedStorage ? [selectedStorage] : []);
 
   // Every step transition should land the user at the top of the new screen,
   // not wherever they happened to be scrolled to on the previous one.
@@ -893,7 +890,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
   function startFunnelForCategory(category: DeviceCategory) {
     setDeviceCategory(category);
     resetJourney();
-    setSuggestions(featuredDevicePicks[category]);
+    setSuggestions([]);
     setShowJourney(true);
     window.setTimeout(() => {
       document.getElementById("trade-journey")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -907,39 +904,61 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setDropdownOpen(false);
   }
 
-  function resolveModelMatch(): DeviceSuggestion | null {
+  async function resolveModelMatch(): Promise<DeviceSuggestion | null> {
     if (selectedModel) return selectedModel;
 
     const normalizedQuery = modelQuery.trim().toLowerCase();
     if (!normalizedQuery) return null;
 
-    const mergedCandidates = [...suggestions, ...featuredDevicePicks[deviceCategory]].filter(
-      (item, index, list) => list.findIndex((entry) => entry.id === item.id) === index,
-    );
+    const isExact = (item: DeviceSuggestion) =>
+      item.label.toLowerCase() === normalizedQuery ||
+      item.model.toLowerCase() === normalizedQuery;
 
-    return (
-      mergedCandidates.find((item) => {
-        const fullLabel = item.label.toLowerCase();
-        const modelOnly = item.model.toLowerCase();
-        return (
-          fullLabel === normalizedQuery ||
-          modelOnly === normalizedQuery ||
-          `${item.brand} ${item.model}`.toLowerCase() === normalizedQuery
-        );
-      }) ?? null
-    );
+    const known = suggestions.find(isExact);
+    if (known) return known;
+
+    // The dropdown may not have caught up with the last keystrokes.
+    try {
+      const response = await fetch(
+        `/api/trade/models?category=${deviceCategory}&query=${encodeURIComponent(modelQuery.trim())}`,
+      );
+      const data = await parseJsonResponse<{ models?: DeviceSuggestion[] }>(response);
+      return (data.models ?? []).find(isExact) ?? null;
+    } catch {
+      return null;
+    }
   }
 
-  function continueFromModelStep() {
-    const matched = resolveModelMatch();
+  function openDeviceEnquiry() {
+    setSupportSuccessMessage(null);
+    setSupportFormError(null);
+    setSupportModel(modelQuery.trim());
+    setSupportStorage("");
+    setSupportModal({
+      title: `We'd love to buy your ${getCategoryLabel(deviceCategory).toLowerCase()}`,
+      message:
+        "We will definitely buy it. Leave your details and our team will do a remote device health check with you, agree a price based on its condition and arrange collection.",
+      reason: "device_enquiry",
+      showLeadForm: true,
+    });
+  }
+
+  async function continueFromModelStep() {
+    if (!modelQuery.trim() && !selectedModel) {
+      openSupportModal(new Error("Please choose a model from the suggestions first."));
+      return;
+    }
+
+    const matched = await resolveModelMatch();
     if (!matched) {
-      openSupportModal(
-        new Error(modelQuery.trim() ? "No matching devices found." : "Please choose a model from the suggestions first."),
-      );
+      // Not in the price list yet (or a category we have no prices for): take the
+      // customer's details so the team can quote manually.
+      openDeviceEnquiry();
       return;
     }
 
     selectModelSuggestion(matched);
+    setSelectedStorage(null);
     setStep("storage");
   }
 
@@ -1001,7 +1020,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
         category: deviceCategory,
         deviceModelId: selectedModel.id,
         condition,
-        storageOption: selectedStorage ?? undefined,
+        storageOption: selectedStorage ?? "",
         requestedAmountGbp: amount,
       });
       setQuote(data.quote);
@@ -1018,36 +1037,153 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
     setRewardRevealed(false);
   }
 
-  async function playSpin() {
+  useEffect(() => () => cancelAnimationFrame(spinRafRef.current), []);
+
+  function setWheelAngle(angle: number) {
+    wheelAngleRef.current = angle;
+    if (wheelRef.current) wheelRef.current.style.transform = `rotate(${angle}deg)`;
+  }
+
+  // velocity: signed degrees per millisecond (positive = clockwise). The wheel
+  // keeps the release momentum while the server picks the prize, then eases out
+  // so it comes to rest on a segment matching that prize.
+  async function launchSpin(velocity: number) {
     if (!quote || spinning) return;
+    const quoteId = quote.id;
     setSpinning(true);
     setRewardLoading(true);
     setSpinError(null);
-    try {
-      const data = await postJson<{ quote: QuoteSummary }>("/api/trade/reward", {
-        quoteId: quote.id,
-        action: "play",
-      });
-      const reward = data.quote.reward;
-      const segmentIndex = Math.max(
-        0,
-        REWARD_TIERS.findIndex((tier) => tier.type === reward?.type && tier.label === reward?.label),
-      );
-      const segmentCenter = segmentIndex * SPIN_SEGMENT_ANGLE + SPIN_SEGMENT_ANGLE / 2;
-      const fullSpins = 6 * 360;
-      const target = fullSpins + (((SPIN_POINTER_ANGLE - segmentCenter) % 360) + 360) % 360;
+    setSpinHintDismissed(true);
 
-      setSpinRotation(target);
+    const dir = velocity < 0 ? -1 : 1;
+    const speed = Math.min(SPIN_MAX_SPEED, Math.max(SPIN_MIN_SPEED, Math.abs(velocity)));
+    const result: { data: { quote: QuoteSummary } | null; failed: boolean } = { data: null, failed: false };
+
+    postJson<{ quote: QuoteSummary }>("/api/trade/reward", { quoteId, action: "play" })
+      .then((data) => {
+        result.data = data;
+      })
+      .catch((error) => {
+        result.failed = true;
+        setSpinError(error instanceof Error ? error.message : "Unable to spin right now. Please try again.");
+      })
+      .finally(() => setRewardLoading(false));
+
+    let plan: { from: number; distance: number; duration: number; t0: number } | null = null;
+    let last = performance.now();
+
+    const frame = (now: number) => {
+      const dt = Math.min(now - last, 50);
+      last = now;
+
+      if (!plan) {
+        if (result.failed) {
+          setSpinning(false);
+          return;
+        }
+        if (!result.data) {
+          setWheelAngle(wheelAngleRef.current + dir * speed * dt);
+          spinRafRef.current = requestAnimationFrame(frame);
+          return;
+        }
+        const reward = result.data.quote.reward;
+        const matches = SPIN_SEGMENTS.map((tier, index) => ({ tier, index })).filter(
+          ({ tier }) => tier.type === reward?.type && tier.label === reward?.label,
+        );
+        const pool = matches.length ? matches : [{ tier: SPIN_SEGMENTS[0], index: 0 }];
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
+        // Land somewhere inside the segment, not always dead centre.
+        const centre =
+          chosen.index * SPIN_SEGMENT_ANGLE +
+          SPIN_SEGMENT_ANGLE / 2 +
+          (Math.random() - 0.5) * SPIN_SEGMENT_ANGLE * 0.6;
+        const residue = mod360(SPIN_POINTER_ANGLE - centre);
+        const from = wheelAngleRef.current;
+        const base = mod360(dir * (residue - from));
+        const wanted = Math.max((speed * 4500) / 3, 720);
+        const distance = base + 360 * Math.ceil(Math.max(wanted - base, 0) / 360);
+        const duration = Math.min(7500, Math.max(3000, (3 * distance) / speed));
+        plan = { from, distance, duration, t0: now };
+      }
+
+      const t = Math.min((now - plan.t0) / plan.duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setWheelAngle(plan.from + dir * plan.distance * eased);
+      if (t < 1) {
+        spinRafRef.current = requestAnimationFrame(frame);
+        return;
+      }
+      const finalQuote = result.data!.quote;
       window.setTimeout(() => {
-        setQuote(data.quote);
+        setQuote(finalQuote);
         setSpinning(false);
         setRewardRevealed(true);
-      }, 4300);
-    } catch (error) {
-      setSpinning(false);
-      setSpinError(error instanceof Error ? error.message : "Unable to spin right now. Please try again.");
-    } finally {
-      setRewardLoading(false);
+      }, 350);
+    };
+    spinRafRef.current = requestAnimationFrame(frame);
+  }
+
+  function angleFromCentre(x: number, y: number, cx: number, cy: number) {
+    return (Math.atan2(x - cx, -(y - cy)) * 180) / Math.PI;
+  }
+
+  function onWheelPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (spinning || rewardLoading || !wheelRef.current) return;
+    const wheelRect = wheelRef.current.getBoundingClientRect();
+    const cx = wheelRect.left + wheelRect.width / 2;
+    const cy = wheelRect.top + wheelRect.height / 2;
+    const theta = angleFromCentre(event.clientX, event.clientY, cx, cy);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      cx,
+      cy,
+      startAngle: wheelAngleRef.current,
+      lastTheta: theta,
+      total: 0,
+      samples: [{ t: performance.now(), a: 0 }],
+    };
+    setSpinHintDismissed(true);
+    setSpinDragging(true);
+  }
+
+  function onWheelPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const theta = angleFromCentre(event.clientX, event.clientY, drag.cx, drag.cy);
+    let diff = theta - drag.lastTheta;
+    if (diff > 180) diff -= 360;
+    if (diff <= -180) diff += 360;
+    drag.lastTheta = theta;
+    drag.total += diff;
+    drag.samples.push({ t: performance.now(), a: drag.total });
+    if (drag.samples.length > 10) drag.samples.shift();
+
+    setWheelAngle(drag.startAngle + drag.total);
+  }
+
+  function onWheelPointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setSpinDragging(false);
+
+    if (Math.abs(drag.total) < SPIN_MIN_DRAG_DEG) return;
+    const now = performance.now();
+    const recent = drag.samples.filter((sample) => now - sample.t <= 120);
+    const first = recent[0] ?? drag.samples[0];
+    const lastSample = drag.samples[drag.samples.length - 1];
+    const elapsed = Math.max(lastSample.t - first.t, 1);
+    let velocity = (lastSample.a - first.a) / elapsed;
+    // Held still before letting go: spin gently in the direction it was pulled.
+    if (Math.abs(velocity) < SPIN_MIN_SPEED) velocity = (drag.total < 0 ? -1 : 1) * SPIN_MIN_SPEED;
+    void launchSpin(velocity);
+  }
+
+  function onWheelKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      void launchSpin(SPIN_BUTTON_SPEED);
     }
   }
 
@@ -1133,9 +1269,10 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
       setSupportFormError(null);
       await postJson<{ supportRequest: { id: string } }>("/api/trade/support-request", {
         deviceCategory,
-        modelQuery,
+        modelQuery: supportModal.reason === "device_enquiry" ? supportModel : modelQuery,
+        storageOption: supportModal.reason === "device_enquiry" ? supportStorage : undefined,
         requestedAmountGbp: requestedAmount ? Number(requestedAmount) : undefined,
-        condition,
+        condition: supportModal.reason === "device_enquiry" ? undefined : condition,
         customerName: supportName,
         customerEmail: supportEmail,
         customerMobile: supportMobile,
@@ -1162,6 +1299,31 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
         <p className="text-sm leading-6 text-muted">{supportModal?.message}</p>
         {supportModal?.showLeadForm ? (
           <form onSubmit={handleSupportSubmit} className="mt-5 space-y-4">
+            {supportModal.reason === "device_enquiry" ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="support-model" className="text-xs font-semibold text-muted">Device model</label>
+                  <input
+                    id="support-model"
+                    required
+                    value={supportModel}
+                    onChange={(event) => setSupportModel(event.target.value)}
+                    className="mt-2 h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="support-storage" className="text-xs font-semibold text-muted">Storage size</label>
+                  <input
+                    id="support-storage"
+                    required
+                    placeholder="e.g. 256GB"
+                    value={supportStorage}
+                    onChange={(event) => setSupportStorage(event.target.value)}
+                    className="mt-2 h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  />
+                </div>
+              </div>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="support-name" className="text-xs font-semibold text-muted">Full name</label>
@@ -1309,10 +1471,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                           setSelectedModel(null);
                           setDropdownOpen(true);
                         }}
-                        onFocus={() => {
-                          setSuggestions(featuredDevicePicks[deviceCategory]);
-                          setDropdownOpen(true);
-                        }}
+                        onFocus={() => setDropdownOpen(true)}
                         placeholder={`Search your ${getCategoryLabel(deviceCategory)}`}
                         className="device-category-search-input model-search-input w-full"
                       />
@@ -1370,7 +1529,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       <div className="storage-info">
                         <h3 className="storage-title">How would you describe its condition?</h3>
                         <p className="storage-help">
-                          Be as accurate as you can &mdash; your final offer depends on the device matching this
+                          Be as accurate as you can &mdash; the price we pay depends on the device matching this
                           description.
                         </p>
                       </div>
@@ -1423,7 +1582,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       <div className="storage-info">
                         <h3 className="storage-title">Confirm the exact storage size</h3>
                         <p className="storage-help">
-                          Check Settings &gt; General &gt; About to confirm the storage size of your {activeBrandModel}.
+                          {deviceCategory === "phone" && selectedModel?.brand !== "Apple"
+                            ? `Check Settings > About phone > Storage to confirm the storage size of your ${activeBrandModel}.`
+                            : `Check Settings > General > About to confirm the storage size of your ${activeBrandModel}.`}
                         </p>
                       </div>
 
@@ -1558,7 +1719,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       <div className="guide-price guide-price-purple mt-2">{formatCurrency(quote.cashOfferGbp)}</div>
                       <p className="mt-3 max-w-[340px] text-[13px] leading-5 text-[#6E6E73] lg:max-w-[520px] lg:text-[16px] lg:leading-6">
                         Every seller gets a free spin! Play our prize wheel for a bonus voucher, cash top-up,
-                        or mystery bag worth up to £600.
+                        or a Gift Box worth up to £50.
                       </p>
                       <div className="mt-6 flex w-full flex-col gap-3 lg:mt-8 lg:max-w-[320px]">
                         <Button type="button" onClick={startSpin} className="btn-purple w-full">
@@ -1586,13 +1747,13 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
                     <div className="journey-split-content w-full">
                       <div className="final-offer-card mt-6 lg:mt-0">
-                        <p className="final-offer-label">Your final offer</p>
+                        <p className="final-offer-label">Your sale total</p>
                         <div className="final-offer-amount">
                           {formatCurrency(quote.cashOfferGbp + (quote.reward?.isCash ? quote.reward.valueGbp : 0))}
                         </div>
                         {quote.reward && quote.reward.type !== "none" ? (
                           <p className="final-offer-note">
-                            {formatCurrency(quote.cashOfferGbp)} offer + {quote.reward.label}
+                            {formatCurrency(quote.cashOfferGbp)} sale price + {quote.reward.label}
                           </p>
                         ) : null}
                       </div>
@@ -1871,9 +2032,25 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                   </div>
 
                   <div className="spin-wheel-wrap">
-                    <SpinWheelSvg rotation={spinRotation} />
-                    <div className="spin-pointer" />
+                    <div
+                      className={`spin-wheel-hit${spinDragging ? " spin-wheel-hit-active" : ""}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Spin the wheel. Drag the wheel in a circle and let go, or press Enter."
+                      onPointerDown={onWheelPointerDown}
+                      onPointerMove={onWheelPointerMove}
+                      onPointerUp={onWheelPointerUp}
+                      onPointerCancel={onWheelPointerUp}
+                      onKeyDown={onWheelKeyDown}
+                    >
+                      <SpinWheelSvg wheelRef={wheelRef} />
+                      {!spinHintDismissed && !spinning ? <span className="spin-hint-finger" aria-hidden="true" /> : null}
+                    </div>
+                    <div className="spin-pointer" aria-hidden="true" />
                   </div>
+                  <p className="spin-drag-hint">
+                    {spinning ? "Good luck!" : "Drag the wheel round in a circle, then let go to spin"}
+                  </p>
 
                   {spinError ? (
                     <div className="w-full rounded-2xl bg-[rgba(254,242,242,1)] px-4 py-3 text-sm text-[rgba(153,27,27,1)]">
@@ -1882,8 +2059,8 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                   ) : null}
 
                   <div className="spin-actions">
-                    <button type="button" disabled={spinning || rewardLoading} onClick={playSpin} className="spin-button disabled:cursor-not-allowed">
-                      {spinning ? "Spinning..." : "Spin to win"}
+                    <button type="button" disabled={spinning || rewardLoading} onClick={() => void launchSpin(SPIN_BUTTON_SPEED)} className="spin-button disabled:cursor-not-allowed">
+                      {spinning ? "Spinning..." : "Or tap to spin"}
                     </button>
                   </div>
                 </>
@@ -1894,14 +2071,14 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                   <div className="spin-reward-card">
                     <p className="spin-reward-intro">Great spin! Your bonus reward is ready.</p>
                     <div className="spin-reward-value">{quote?.reward?.label}</div>
-                    <p className="spin-reward-note">Added to your offer</p>
+                    <p className="spin-reward-note">Added to your checkout</p>
                   </div>
                   <p className="spin-help">
-                    This reward is on top of your cash offer and will be emailed as a code once your
+                    This reward is on top of your sale price and will be emailed as a code once your
                     trade-in is confirmed.
                   </p>
                   <button type="button" onClick={continueAfterReward} className="spin-button">
-                    See final offer
+                    Confirm sale
                   </button>
                 </div>
               )}

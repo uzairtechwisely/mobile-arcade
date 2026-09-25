@@ -3,7 +3,9 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { getTradeDb } from "@/lib/trade/db";
-import { computeQuoteOutcome, getSystemMaximumForCondition } from "@/lib/trade/pricing";
+import { notifySupportRequest, notifyTradeConfirmed } from "@/lib/email/notifications";
+import { getStripe } from "@/lib/stripe";
+import { computeQuoteOutcome } from "@/lib/trade/pricing";
 import {
   type DeviceCategory,
   type DeviceCondition,
@@ -30,7 +32,7 @@ const quoteInputSchema = z.object({
   category: z.enum(categoryValues),
   deviceModelId: z.string().min(1),
   condition: z.enum(conditionValues),
-  storageOption: z.string().trim().max(40).optional(),
+  storageOption: z.string().trim().min(1, "Please choose a storage size.").max(40),
   colourOption: z.string().trim().max(40).optional(),
   requestedAmountGbp: z.coerce.number().int().positive().max(5000).optional(),
 });
@@ -76,6 +78,7 @@ const confirmTradeSchema = z
 const supportRequestSchema = z.object({
   deviceCategory: z.enum(categoryValues),
   modelQuery: z.string().trim().max(120).optional().default(""),
+  storageOption: z.string().trim().max(40).optional(),
   requestedAmountGbp: z.coerce.number().int().min(0).max(5000).optional(),
   condition: z.enum(conditionValues).optional(),
   customerName: z.string().trim().min(2),
@@ -86,7 +89,7 @@ const supportRequestSchema = z.object({
     .min(10)
     .max(20)
     .regex(/^[0-9+\s()\-]+$/),
-  reason: z.enum(["typing_error", "unsupported_device", "system_down"]),
+  reason: z.enum(["typing_error", "unsupported_device", "system_down", "device_enquiry"]),
 });
 
 type DeviceModelRow = {
@@ -95,14 +98,6 @@ type DeviceModelRow = {
   brand: string;
   model: string;
   imageUrl: string | null;
-  pricing: {
-    brand_new: number;
-    excellent: number;
-    good: number;
-    fair: number;
-    cracked_working: number;
-    cracked_not_working: number;
-  };
 };
 
 function toNumber(value: unknown) {
@@ -119,14 +114,6 @@ function rowToDeviceModel(row: Record<string, unknown>): DeviceModelRow {
     brand: String(row.brand),
     model: String(row.model),
     imageUrl: row.image_url ? String(row.image_url) : null,
-    pricing: {
-      brand_new: toNumber(row.system_max_brand_new),
-      excellent: toNumber(row.system_max_excellent),
-      good: toNumber(row.system_max_good),
-      fair: toNumber(row.system_max_fair),
-      cracked_working: toNumber(row.system_max_cracked_working),
-      cracked_not_working: toNumber(row.system_max_cracked_not_working),
-    },
   };
 }
 
@@ -134,20 +121,9 @@ async function getDeviceModelById(id: string) {
   const db = await getTradeDb();
   const result = await db.execute({
     sql: `
-      SELECT
-        id,
-        category,
-        brand,
-        model,
-        image_url,
-        system_max_brand_new,
-        system_max_excellent,
-        system_max_good,
-        system_max_fair,
-        system_max_cracked_working,
-        system_max_cracked_not_working
-      FROM device_models
-      WHERE id = ?
+      SELECT id, category, brand, model, image_url
+      FROM catalog_models
+      WHERE id = ? AND active = 1
       LIMIT 1
     `,
     args: [id],
@@ -155,6 +131,18 @@ async function getDeviceModelById(id: string) {
 
   const row = result.rows[0];
   return row ? rowToDeviceModel(row as Record<string, unknown>) : null;
+}
+
+// The single place a customer-facing price is read from: catalog_prices, keyed by
+// model + storage + condition. Returns null when that combination is not priced.
+async function getCatalogPrice(modelId: string, storage: string, condition: DeviceCondition) {
+  const db = await getTradeDb();
+  const result = await db.execute({
+    sql: "SELECT price_gbp FROM catalog_prices WHERE model_id = ? AND storage = ? AND condition = ?",
+    args: [modelId, storage, condition],
+  });
+  const row = result.rows[0];
+  return row ? toNumber(row.price_gbp) : null;
 }
 
 function normalizeReward(row: Record<string, unknown>): RewardSummary | null {
@@ -242,7 +230,7 @@ async function getQuoteById(quoteId: string) {
         d.model,
         d.image_url
       FROM quotes q
-      INNER JOIN device_models d ON d.id = q.device_model_id
+      INNER JOIN catalog_models d ON d.id = q.device_model_id
       WHERE q.id = ?
       LIMIT 1
     `,
@@ -261,14 +249,18 @@ export async function searchDeviceModels(
   const trimmed = query.trim().toLowerCase();
   const like = `%${trimmed}%`;
 
+  // With no query, lead with the featured models, then the newest in the price list.
   const result = await db.execute({
     sql: `
-      SELECT id, brand, model, category, image_url
-      FROM device_models
-      WHERE category = ?
-        AND (? = '' OR search_text LIKE ?)
-      ORDER BY brand ASC, model ASC
-      LIMIT 50
+      SELECT m.id, m.brand, m.model, m.category, m.image_url,
+             (SELECT group_concat(storage, '|') FROM (
+                SELECT DISTINCT storage FROM catalog_prices WHERE model_id = m.id
+             )) AS storages
+      FROM catalog_models m
+      WHERE m.category = ? AND m.active = 1
+        AND (? = '' OR m.search_text LIKE ?)
+      ORDER BY ${trimmed ? "m.brand ASC, m.sort_order DESC" : "m.featured DESC, m.sort_order DESC"}
+      LIMIT ${trimmed ? 50 : 12}
     `,
     args: [category, trimmed, like],
   });
@@ -280,7 +272,16 @@ export async function searchDeviceModels(
     category: String(row.category) as DeviceCategory,
     label: `${String(row.brand)} ${String(row.model)}`,
     imageUrl: row.image_url ? String(row.image_url) : null,
+    storageOptions: sortStorages(row.storages ? String(row.storages).split("|") : []),
   }));
+}
+
+function sortStorages(values: string[]) {
+  const toGb = (value: string) => {
+    const match = value.match(/^(\d+(?:\.\d+)?)(GB|TB)$/);
+    return match ? Number(match[1]) * (match[2] === "TB" ? 1024 : 1) : 0;
+  };
+  return [...values].sort((a, b) => toGb(a) - toGb(b));
 }
 
 export async function createQuote(input: unknown) {
@@ -291,16 +292,16 @@ export async function createQuote(input: unknown) {
     throw new Error("Selected model was not found for this category.");
   }
 
+  const systemMaximumGbp = await getCatalogPrice(model.id, parsed.storageOption, parsed.condition);
+  if (systemMaximumGbp === null) {
+    throw new Error("Selected model was not found for this storage size and condition.");
+  }
+
   // "I am not sure" (no requestedAmountGbp) is treated as asking for our best price,
-  // which always resolves to the system maximum for this exact model + condition.
-  const systemMaximumGbp = getSystemMaximumForCondition(model.pricing, parsed.condition);
+  // which always resolves to the system maximum for this exact model + storage + condition.
   const effectiveRequestedAmountGbp = parsed.requestedAmountGbp ?? systemMaximumGbp;
 
-  const quoteOutcome = computeQuoteOutcome(
-    effectiveRequestedAmountGbp,
-    model.pricing,
-    parsed.condition,
-  );
+  const quoteOutcome = computeQuoteOutcome(effectiveRequestedAmountGbp, systemMaximumGbp);
 
   const quoteId = randomUUID();
   const db = await getTradeDb();
@@ -331,7 +332,7 @@ export async function createQuote(input: unknown) {
       model.id,
       parsed.category,
       parsed.condition,
-      parsed.storageOption ?? null,
+      parsed.storageOption,
       parsed.colourOption ?? null,
       effectiveRequestedAmountGbp,
       quoteOutcome.systemMaximumGbp,
@@ -354,7 +355,7 @@ export async function createQuote(input: unknown) {
     model: model.model,
     imageUrl: model.imageUrl,
     condition: parsed.condition,
-    storageOption: parsed.storageOption ?? null,
+    storageOption: parsed.storageOption,
     colourOption: parsed.colourOption ?? null,
     requestedAmountGbp: effectiveRequestedAmountGbp,
     systemMaximumGbp: quoteOutcome.systemMaximumGbp,
@@ -461,6 +462,17 @@ export async function confirmTrade(input: unknown) {
     } satisfies TradeConfirmation;
   }
 
+  if (!parsed.hasOwnPackaging) {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error("Postage pack payments are not configured yet. Please contact Mobile Arcade.");
+    }
+    const intent = await stripe.paymentIntents.retrieve(parsed.postagePackStripePaymentIntentId as string);
+    if (intent.status !== "succeeded" || intent.amount < POSTAGE_PACK_COST_GBP * 100 || intent.currency !== "gbp") {
+      throw new Error("We could not verify your postage pack payment. Please try paying again.");
+    }
+  }
+
   const reimbursement = parsed.hasOwnPackaging ? 0 : POSTAGE_PACK_COST_GBP;
   const postageService = parsed.hasOwnPackaging
     ? "Self-packaged collection"
@@ -517,6 +529,29 @@ export async function confirmTrade(input: unknown) {
     ],
   });
 
+  const expectedPayoutOnReceiptGbp =
+    quote.cashOfferGbp + (quote.reward?.isCash ? quote.reward.valueGbp : 0) + reimbursement;
+
+  // The trade is safely stored above; emails are best-effort and logged in email_log.
+  await notifyTradeConfirmed({
+    reference: tradeReferenceId,
+    customerName: parsed.customerName,
+    customerEmail: parsed.customerEmail,
+    customerMobile: parsed.customerMobile,
+    address: parsed.collectionAddress,
+    device: `${quote.brand} ${quote.model}`,
+    storage: quote.storageOption,
+    condition: conditionLabels[quote.condition],
+    cashOfferGbp: quote.cashOfferGbp,
+    rewardLabel: quote.reward.label,
+    expectedPayoutGbp: expectedPayoutOnReceiptGbp,
+    hasOwnPackaging: parsed.hasOwnPackaging,
+    postagePackPaymentIntentId: parsed.postagePackStripePaymentIntentId ?? null,
+    bankAccountName: parsed.bankAccountName,
+    bankSortCode: parsed.bankSortCode,
+    bankAccountNumber: parsed.bankAccountNumber,
+  });
+
   return {
     id: tradeId,
     quoteId: parsed.quoteId,
@@ -526,10 +561,7 @@ export async function confirmTrade(input: unknown) {
     postageTrackingReference: null,
     estimatedPostageCostGbp: reimbursement,
     postageReimbursementGbp: reimbursement,
-    expectedPayoutOnReceiptGbp:
-      quote.cashOfferGbp +
-      (quote.reward?.isCash ? quote.reward.valueGbp : 0) +
-      reimbursement,
+    expectedPayoutOnReceiptGbp,
     reward: quote.reward,
   } satisfies TradeConfirmation;
 }
@@ -545,6 +577,7 @@ export async function createSupportRequest(input: unknown) {
         id,
         device_category,
         model_query,
+        storage_option,
         requested_amount_gbp,
         device_condition,
         customer_name,
@@ -552,12 +585,13 @@ export async function createSupportRequest(input: unknown) {
         customer_mobile,
         reason,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
       id,
       parsed.deviceCategory,
       parsed.modelQuery || null,
+      parsed.storageOption || null,
       parsed.requestedAmountGbp ?? null,
       parsed.condition ?? null,
       parsed.customerName,
@@ -566,6 +600,19 @@ export async function createSupportRequest(input: unknown) {
       parsed.reason,
       new Date().toISOString(),
     ],
+  });
+
+  await notifySupportRequest({
+    id,
+    customerName: parsed.customerName,
+    customerEmail: parsed.customerEmail,
+    customerMobile: parsed.customerMobile,
+    deviceCategory: parsed.deviceCategory,
+    modelQuery: parsed.modelQuery || null,
+    storageOption: parsed.storageOption || null,
+    requestedAmountGbp: parsed.requestedAmountGbp ?? null,
+    condition: parsed.condition ? conditionLabels[parsed.condition] : null,
+    reason: parsed.reason,
   });
 
   return {

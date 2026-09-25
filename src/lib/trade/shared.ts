@@ -95,35 +95,19 @@ export type TradeConfirmation = {
 
 export const POSTAGE_PACK_COST_GBP = 8;
 
-// Wedge order matches the spin-wheel UI in LandingPage.tsx, which reads REWARD_TIERS
-// to lay out and animate to the server-chosen winning segment.
+// The spin-wheel UI in LandingPage.tsx shows each tier twice (6 segments) and reads
+// REWARD_TIERS to animate to a segment matching the server-chosen reward.
 export const REWARD_TIERS = [
-  { type: "cash_bonus", label: "£5 cash bonus", valueGbp: 5, isCash: true, weight: 35 },
-  { type: "cash_bonus", label: "£10 cash bonus", valueGbp: 10, isCash: true, weight: 25 },
   {
-    type: "ma_voucher",
-    label: "£15 Mobile Arcade voucher",
-    valueGbp: 15,
-    isCash: false,
-    weight: 15,
-  },
-  { type: "cash_bonus", label: "£20 cash bonus", valueGbp: 20, isCash: true, weight: 12 },
-  { type: "cash_bonus", label: "£50 cash bonus", valueGbp: 50, isCash: true, weight: 8 },
-  {
-    type: "mystery_bag",
-    label: "Mystery bag (up to £600 value)",
+    type: "gift_box",
+    label: "Gift Box (up to £50)",
     valueGbp: 0,
     isCash: false,
-    weight: 5,
+    weight: 10,
   },
+  { type: "cash_voucher", label: "£5 cash voucher", valueGbp: 5, isCash: false, weight: 50 },
+  { type: "cash_voucher", label: "£15 cash voucher", valueGbp: 15, isCash: false, weight: 40 },
 ] as const satisfies ReadonlyArray<RewardSummary & { weight: number }>;
-
-export const storageOptionsByCategory: Record<DeviceCategory, string[]> = {
-  phone: ["64GB", "128GB", "256GB", "512GB", "1TB"],
-  tablet: ["64GB", "128GB", "256GB", "512GB", "1TB"],
-  laptop: ["128GB", "256GB", "512GB", "1TB", "2TB"],
-  gaming_device: ["512GB", "825GB", "1TB", "2TB"],
-};
 
 export function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-GB", {
