@@ -26,7 +26,7 @@ export const landingPages: LandingPageConfig[] = [
     heroSubtitle:
       "Get an estimated value quickly and find out what your phone could be worth in today’s market. Secure, fast, and transparent.",
     promoTitle: "Get £75–£500",
-    promoSubtitle: "when you trade in any phone",
+    promoSubtitle: "when you trade in with us",
     promoCtaLabel: "Find my phone value",
     promoImageUrl: PLACEHOLDER_PROMO,
     steps: [

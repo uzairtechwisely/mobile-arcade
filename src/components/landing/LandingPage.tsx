@@ -89,70 +89,14 @@ function getDeviceImageSrc(item: { category: DeviceCategory; imageUrl?: string |
 const deviceTypes: Array<{
   key: DeviceCategory;
   label: string;
-  icon: React.ReactNode;
+  iconSrc: string;
+  iconWidth: number;
+  iconHeight: number;
 }> = [
-  {
-    key: "phone",
-    label: "Phones",
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-10 w-10" fill="none">
-        <path
-          d="M8 2.5h8A2.5 2.5 0 0 1 18.5 5v14A2.5 2.5 0 0 1 16 21.5H8A2.5 2.5 0 0 1 5.5 19V5A2.5 2.5 0 0 1 8 2.5Z"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        />
-        <path d="M10 5.2h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    key: "laptop",
-    label: "Laptop",
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-10 w-10" fill="none">
-        <path
-          d="M5 6.5h14A2 2 0 0 1 21 8.5v7H3v-7A2 2 0 0 1 5 6.5Z"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        />
-        <path d="M2.5 16.5h19" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    key: "tablet",
-    label: "Tablets/iPad",
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-10 w-10" fill="none">
-        <path
-          d="M7 3.5h10A2.5 2.5 0 0 1 19.5 6v12A2.5 2.5 0 0 1 17 20.5H7A2.5 2.5 0 0 1 4.5 18V6A2.5 2.5 0 0 1 7 3.5Z"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        />
-        <path d="M12 18h0.01" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    key: "gaming_device",
-    label: "Gaming",
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-10 w-10" fill="none">
-        <path
-          d="M8.5 10.5h7A4.5 4.5 0 0 1 20 15v2.2a2.3 2.3 0 0 1-4 1.6l-1.2-1.3a2 2 0 0 0-1.5-.7h-2.6a2 2 0 0 0-1.5.7L8 18.8a2.3 2.3 0 0 1-4-1.6V15a4.5 4.5 0 0 1 4.5-4.5Z"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        />
-        <path d="M9 13.5v3M7.5 15h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        <path
-          d="M16.3 14.4h0.01M17.6 15.7h0.01"
-          stroke="currentColor"
-          strokeWidth="2.8"
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
-  },
+  { key: "phone", label: "Phones", iconSrc: "/brand/icons/devices-repair/mobile-icon.png", iconWidth: 16, iconHeight: 22 },
+  { key: "laptop", label: "Laptop", iconSrc: "/brand/icons/devices-repair/laptop-icon.png", iconWidth: 24, iconHeight: 24 },
+  { key: "tablet", label: "Tablets/iPad", iconSrc: "/brand/icons/devices-repair/tab-icon.png", iconWidth: 24, iconHeight: 26 },
+  { key: "gaming_device", label: "Gaming", iconSrc: "/brand/icons/devices-repair/game-icon.png", iconWidth: 28, iconHeight: 28 },
 ];
 
 const featuredDevicePicks: Record<DeviceCategory, DeviceSuggestion[]> = {
@@ -212,7 +156,7 @@ function getPromoContent(category: DeviceCategory, cfg: LandingPageConfig) {
   if (category === "laptop") {
     return {
       title: "Get £100-£600",
-      subtitle: "when you trade in any laptop",
+      subtitle: "when you trade in with us",
       ctaLabel: getFindValueCtaLabel(category),
       imageUrl: PROMO_LAPTOP,
     };
@@ -220,7 +164,7 @@ function getPromoContent(category: DeviceCategory, cfg: LandingPageConfig) {
   if (category === "tablet") {
     return {
       title: "Get £80-£550",
-      subtitle: "when you trade in any tablet/ipad",
+      subtitle: "when you trade in with us",
       ctaLabel: getFindValueCtaLabel(category),
       imageUrl: PROMO_TABLET,
     };
@@ -228,7 +172,7 @@ function getPromoContent(category: DeviceCategory, cfg: LandingPageConfig) {
   if (category === "gaming_device") {
     return {
       title: "Get £50-£350",
-      subtitle: "when you trade in any gaming device",
+      subtitle: "when you trade in with us",
       ctaLabel: getFindValueCtaLabel(category),
       imageUrl: PROMO_GAMING,
     };
@@ -364,7 +308,18 @@ function DeviceCategorySelector({
               onClick={() => onSelect(item.key)}
               className={`device-category ${active ? "is-selected text-[#006AFC]" : "text-[#1D1D1F]"}`}
             >
-              <span className="flex h-12 items-center justify-center">{item.icon}</span>
+              <span className="flex h-12 items-center justify-center">
+                <span
+                  aria-hidden="true"
+                  className="device-icon"
+                  style={{
+                    width: item.iconWidth,
+                    height: item.iconHeight,
+                    WebkitMaskImage: `url(${item.iconSrc})`,
+                    maskImage: `url(${item.iconSrc})`,
+                  }}
+                />
+              </span>
               <span className="device-category-label">{item.label}</span>
             </button>
           );
@@ -384,12 +339,17 @@ function TradeInPromoCard({
   onCta: () => void;
 }) {
   const content = getPromoContent(category, cfg);
+  const [promoLead, ...promoTail] = content.title.replace("–", "-").split(" ");
+  const promoRest = promoTail.join(" ");
+  const mobileImageUrl = content.imageUrl.endsWith(".webp")
+    ? content.imageUrl.replace(".webp", "-mobile.webp")
+    : content.imageUrl;
   return (
     <section className="tradein-promo-section">
       <div className="tradein-promo">
         <div className="tradein-promo-copy">
           <h2 className="tradein-promo-title">
-            <strong>{content.title}</strong>
+            {promoLead} <strong>{promoRest}</strong>
             <br />
             {content.subtitle}
           </h2>
@@ -397,13 +357,22 @@ function TradeInPromoCard({
             {content.ctaLabel}
           </button>
         </div>
+        {/* Portrait (rotated) art on mobile so the devices show whole, landscape art on desktop */}
+        <Image
+          key={`${content.imageUrl}-m`}
+          src={mobileImageUrl}
+          alt="Trade-in devices"
+          width={675}
+          height={900}
+          className="tradein-promo-image tradein-promo-image-mobile"
+        />
         <Image
           key={content.imageUrl}
           src={content.imageUrl}
-          alt="Trade-in devices"
+          alt=""
           width={420}
           height={315}
-          className="tradein-promo-image"
+          className="tradein-promo-image tradein-promo-image-desktop"
         />
       </div>
     </section>
@@ -459,9 +428,7 @@ function FAQAccordion({
                 >
                   <span>{faq.q}</span>
                   <span className="shrink-0 text-[#1D1D1F]">
-                    <svg viewBox="0 0 20 20" className={`h-5 w-5 transition-transform ${open ? "rotate-180" : ""}`} fill="none">
-                      <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <AppIcon name="navigation/chevron-down" className={`transition-transform ${open ? "rotate-180" : ""}`} />
                   </span>
                 </button>
                 {open ? <div className="faq-answer">{faq.a}</div> : null}
@@ -471,6 +438,17 @@ function FAQAccordion({
         </div>
       </div>
     </section>
+  );
+}
+
+function AppIcon({ name, size = 24, className = "" }: { name: string; size?: number; className?: string }) {
+  const src = `/brand/icons/${name}.png`;
+  return (
+    <span
+      aria-hidden="true"
+      className={`device-icon ${className}`}
+      style={{ width: size, height: size, WebkitMaskImage: `url(${src})`, maskImage: `url(${src})` }}
+    />
   );
 }
 
@@ -1286,17 +1264,13 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
           <div className="journey-close">
             {getPreviousStep(step) ? (
               <button type="button" onClick={handleBack} aria-label="Go back to the previous step" className="journey-close-btn">
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-                  <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <AppIcon name="navigation/chevron-left" />
               </button>
             ) : (
               <span />
             )}
             <button type="button" onClick={cancelJourney} aria-label="Cancel and close this quote" className="journey-close-btn">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
+              <AppIcon name="navigation/close" />
             </button>
           </div>
 
@@ -1504,14 +1478,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                           aria-label="Edit device details"
                           className="device-visual-edit"
                         >
-                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none">
-                            <path
-                              d="M4 20l4-1 11-11-3-3L5 16l-1 4Z"
-                              stroke="currentColor"
-                              strokeWidth="1.6"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                          <AppIcon name="operations/edit" size={20} />
                         </button>
                       </div>
                     </div>

@@ -319,6 +319,17 @@ h3 {
   object-fit: contain;
 }
 
+.device-icon {
+  display: block;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
 .landing-hero {
   width: 100%;
   padding: 64px 20px;
@@ -1166,7 +1177,7 @@ textarea:focus-visible {
   isolation: isolate;
   width: 100%;
   max-width: 362px;
-  min-height: 520px;
+  min-height: 566px;
   padding-top: 32px;
   display: flex;
   flex-direction: column;
@@ -1219,14 +1230,25 @@ textarea:focus-visible {
   color: #070707;
 }
 
+.tradein-promo-image-desktop {
+  display: none;
+}
+
+/* Anchor the portrait art to its top so the top phone keeps the image's own
+   transparent margin and is never sliced by the box edge. */
+.tradein-promo-image-mobile {
+  object-position: center top;
+}
+
 .tradein-promo-image {
   position: absolute;
-  width: 300px;
-  height: 225px;
-  left: 31px;
-  top: 258px;
-  object-fit: contain;
-  border-radius: 24px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 58%;
+  object-fit: cover;
+  object-position: center top;
   z-index: 1;
 }
 
@@ -1602,41 +1624,60 @@ textarea:focus-visible {
     padding: 80px;
   }
 
+  /* Figma: [566px text column][522x384 photo] centred, photo fills the banner height */
   .tradein-promo {
     max-width: none;
-    min-height: 520px;
+    min-height: 0;
+    height: 384px;
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    gap: 64px;
-    padding: 64px 80px;
+    gap: 0;
+    padding: 0;
   }
 
   .tradein-promo-copy {
     width: 566px;
+    flex: 0 1 566px;
+    min-width: 260px;
+    gap: 32px;
+    padding: 0 24px;
     align-items: flex-start;
     text-align: left;
   }
 
   .tradein-promo-title {
-    font-size: 60px;
+    font-size: clamp(40px, 4.2vw, 60px);
     line-height: 52px;
     text-align: left;
   }
 
   .tradein-promo-cta {
     width: auto;
+    min-width: 240px;
+    min-height: 48px;
     padding: 0 40px;
     font-size: 18px;
-    line-height: 52px;
+    line-height: 28px;
     white-space: nowrap;
+  }
+
+  .tradein-promo-image-mobile {
+    display: none;
+  }
+
+  .tradein-promo-image-desktop {
+    display: block;
   }
 
   .tradein-promo-image {
     position: static;
+    flex: none;
     width: 522px;
-    height: 401px;
-    transform: none;
+    height: 384px;
+    aspect-ratio: auto;
+    object-fit: cover;
+    object-position: center;
   }
 
   .steps-section {
