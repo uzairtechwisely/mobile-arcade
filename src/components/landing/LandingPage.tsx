@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { Celebration } from "@/components/landing/Celebration";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { type LandingPageConfig } from "@/lib/landing-pages";
@@ -1569,6 +1570,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
 
               {step === "congrats" && quote ? (
                 <div className="journey-plain-card relative mx-auto flex w-full max-w-[420px] flex-col items-center overflow-hidden rounded-[36px] bg-white px-6 py-10 text-center shadow-[0_24px_70px_rgba(0,0,0,0.08)]">
+                  {!spinOpen ? <Celebration key="congrats" preset="congrats" /> : null}
                   <div className="journey-split flex w-full flex-col items-center">
                     <div className="device-visual">
                       <Image
@@ -1920,6 +1922,7 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                 </>
               ) : (
                 <div className="spin-reveal">
+                  <Celebration key="reward" preset="reward" />
                   <h2 className="spin-title">You won!</h2>
                   <div className="spin-reward-card">
                     <p className="spin-reward-intro">Great spin! Your bonus reward is ready.</p>
