@@ -16,6 +16,27 @@ const IMAGE_RULES: Array<{ test: RegExp; image: string }> = [
   { test: /^apple iphone 15( plus)?$/i, image: "/brand/models/iphone-15-15plus.webp" },
   { test: /^apple iphone 14 pro/i, image: "/brand/models/iphone-14-pro-promax.webp" },
   { test: /^apple iphone 1[34]( plus| mini)?$/i, image: "/brand/models/iphone-13-14.webp" },
+
+  { test: /^google pixel 6$/i, image: "/brand/models/pixel-6.webp" },
+  { test: /^google pixel 6 pro$/i, image: "/brand/models/pixel-6-pro.webp" },
+  { test: /^google pixel 6a$/i, image: "/brand/models/pixel-6a.webp" },
+  { test: /^google pixel 7$/i, image: "/brand/models/pixel-7.webp" },
+  { test: /^google pixel 7 pro$/i, image: "/brand/models/pixel-7-pro.webp" },
+  { test: /^google pixel 7a$/i, image: "/brand/models/pixel-7a.webp" },
+  { test: /^google pixel fold$/i, image: "/brand/models/pixel-fold.webp" },
+  { test: /^google pixel 8$/i, image: "/brand/models/pixel-8.webp" },
+  { test: /^google pixel 8 pro$/i, image: "/brand/models/pixel-8-pro.webp" },
+  { test: /^google pixel 8a$/i, image: "/brand/models/pixel-8a.webp" },
+  { test: /^google pixel 9$/i, image: "/brand/models/pixel-9.webp" },
+  { test: /^google pixel 9 pro$/i, image: "/brand/models/pixel-9-pro.webp" },
+  { test: /^google pixel 9 pro xl$/i, image: "/brand/models/pixel-9-pro-xl.webp" },
+  { test: /^google pixel 9 pro fold$/i, image: "/brand/models/pixel-9-pro-fold.webp" },
+  { test: /^google pixel 9a$/i, image: "/brand/models/pixel-9a.webp" },
+  { test: /^google pixel 10$/i, image: "/brand/models/pixel-10.webp" },
+  { test: /^google pixel 10 pro$/i, image: "/brand/models/pixel-10-pro.webp" },
+  { test: /^google pixel 10 pro xl$/i, image: "/brand/models/pixel-10-pro-xl.webp" },
+  { test: /^google pixel 10 pro fold$/i, image: "/brand/models/pixel-10-pro-fold.webp" },
+  { test: /^google pixel 10a$/i, image: "/brand/models/pixel-10a.webp" },
 ];
 
 export function defaultImageFor(brand: string, model: string) {
