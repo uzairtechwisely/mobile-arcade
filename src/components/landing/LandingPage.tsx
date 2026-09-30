@@ -93,10 +93,10 @@ const deviceTypes: Array<{
   iconWidth: number;
   iconHeight: number;
 }> = [
-  { key: "phone", label: "Phones", iconSrc: "/brand/icons/devices-repair/mobile-icon.png", iconWidth: 16, iconHeight: 22 },
-  { key: "laptop", label: "Laptop", iconSrc: "/brand/icons/devices-repair/laptop-icon.png", iconWidth: 24, iconHeight: 24 },
+  { key: "phone", label: "Phones", iconSrc: "/brand/icons/devices-repair/mobile-icon.png", iconWidth: 18, iconHeight: 24 },
+  { key: "laptop", label: "Laptop", iconSrc: "/brand/icons/devices-repair/laptop-icon.png", iconWidth: 26, iconHeight: 22 },
   { key: "tablet", label: "Tablets/iPad", iconSrc: "/brand/icons/devices-repair/tab-icon.png", iconWidth: 24, iconHeight: 26 },
-  { key: "gaming_device", label: "Gaming", iconSrc: "/brand/icons/devices-repair/game-icon.png", iconWidth: 28, iconHeight: 28 },
+  { key: "gaming_device", label: "Gaming", iconSrc: "/brand/icons/devices-repair/game-icon.png", iconWidth: 28, iconHeight: 22 },
 ];
 
 const conditionDescriptions: Record<DeviceCondition, string> = {
