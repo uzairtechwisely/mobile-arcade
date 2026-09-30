@@ -82,7 +82,10 @@ export function customerTradeEmail(d: TradeEmailData) {
   const next = d.hasOwnPackaging
     ? "Pack your device securely and our team will be in touch to arrange collection."
     : "Your protective postage pack is on its way - the £8 is added back to your payout once we receive your device.";
-  const intro = `Hi ${escapeHtml(firstName)}, thanks for trading in with Mobile Arcade. ${escapeHtml(next)} Once your device passes inspection, we pay the bank account you provided.`;
+  const payoutLine = d.bankAccountNumber
+    ? "Once your device passes inspection, we pay the bank account you provided."
+    : "Once your device passes inspection and you're happy with the final settlement figure, we'll ask for your bank details to pay you - no rush.";
+  const intro = `Hi ${escapeHtml(firstName)}, thanks for trading in with Mobile Arcade. ${escapeHtml(next)} ${escapeHtml(payoutLine)}`;
   const footer =
     "We will never call you to ask for your bank card details, ask you to move funds into another account, or ask for any payment before we pay you. Reply to this email if anything looks wrong.";
   const subject = `Your Mobile Arcade trade-in ${d.reference}`;
@@ -108,8 +111,11 @@ export function businessTradeEmail(d: TradeEmailData) {
     ["Expected payout", gbp(d.expectedPayoutGbp)],
     ["Packaging", d.hasOwnPackaging ? "Customer has own packaging" : "Postage pack requested (paid)"],
     ...(d.postagePackPaymentIntentId ? ([["Stripe payment", d.postagePackPaymentIntentId]] as Row[]) : []),
-    ["Bank account name", d.bankAccountName],
-    ["Bank account", `${d.bankSortCode} / ${maskAccountNumber(d.bankAccountNumber)}`],
+    ["Bank account name", d.bankAccountName || "Not provided yet"],
+    [
+      "Bank account",
+      d.bankAccountNumber ? `${d.bankSortCode} / ${maskAccountNumber(d.bankAccountNumber)}` : "Not provided yet - collect before payout",
+    ],
   ];
   const intro = "A new trade-in has been confirmed. Full details are stored in the database.";
   const footer = "Full bank details are only kept in the database, not in email.";

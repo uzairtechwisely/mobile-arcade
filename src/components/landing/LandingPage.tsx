@@ -1868,9 +1868,9 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                       </h2>
 
                       <div className="trust-box">
-                        We need your contact and bank details so our team can confirm your device and send your
-                        payment directly once it&apos;s received and inspected. Your details are handled in line
-                        with our{" "}
+                        We need your contact details so our team can confirm your device and arrange payment
+                        once it&apos;s received and inspected. Bank details are optional for now - your details
+                        are handled in line with our{" "}
                         <a href="https://mobilearcadeltd.co.uk/privacy" target="_blank" rel="noreferrer" className="font-semibold text-brand">
                           Privacy Policy
                         </a>{" "}
@@ -1909,18 +1909,23 @@ export function LandingPage({ cfg }: { cfg: LandingPageConfig }) {
                     <div className="payout-col-right space-y-4">
                       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
                         <div>
-                          <label htmlFor="bank-name" className="field-label">Account name</label>
-                          <input id="bank-name" value={bankAccountName} onChange={(e) => setBankAccountName(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
+                          <label htmlFor="bank-name" className="field-label">Account name (optional)</label>
+                          <input id="bank-name" value={bankAccountName} onChange={(e) => setBankAccountName(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" />
                         </div>
                         <div>
-                          <label htmlFor="bank-sort" className="field-label">Sort code</label>
-                          <input id="bank-sort" value={bankSortCode} onChange={(e) => setBankSortCode(e.target.value)} placeholder="12-34-56" className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
+                          <label htmlFor="bank-sort" className="field-label">Sort code (optional)</label>
+                          <input id="bank-sort" value={bankSortCode} onChange={(e) => setBankSortCode(e.target.value)} placeholder="12-34-56" className="field-input focus-visible:ring-2 focus-visible:ring-brand" />
                         </div>
                         <div>
-                          <label htmlFor="bank-number" className="field-label">Account number</label>
-                          <input id="bank-number" value={bankAccountNumber} onChange={(e) => setBankAccountNumber(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" required />
+                          <label htmlFor="bank-number" className="field-label">Account number (optional)</label>
+                          <input id="bank-number" value={bankAccountNumber} onChange={(e) => setBankAccountNumber(e.target.value)} className="field-input focus-visible:ring-2 focus-visible:ring-brand" />
                         </div>
                       </div>
+
+                      <p className="text-xs leading-5 text-muted">
+                        You don&apos;t need to add these now - you can provide your bank details later, once
+                        we&apos;ve received your device and you&apos;re happy with the final settlement figure.
+                      </p>
 
                       <label className="flex items-start gap-3 text-sm leading-6 text-muted">
                         <input

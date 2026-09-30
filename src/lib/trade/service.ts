@@ -6,6 +6,7 @@ import { getTradeDb } from "@/lib/trade/db";
 import { notifySupportRequest, notifyTradeConfirmed } from "@/lib/email/notifications";
 import { getStripe } from "@/lib/stripe";
 import { computeQuoteOutcome } from "@/lib/trade/pricing";
+import { encryptBankField } from "@/lib/trade/crypto";
 import {
   type DeviceCategory,
   type DeviceCondition,
@@ -54,15 +55,11 @@ const confirmTradeSchema = z
       .max(20, "Please enter a valid mobile number.")
       .regex(/^[0-9+\s()\-]+$/, "Please enter a valid mobile number."),
     collectionAddress: z.string().trim().min(10, "Please enter your full address."),
-    bankAccountName: z.string().trim().min(2, "Please enter the account holder's name."),
-    bankSortCode: z
-      .string()
-      .trim()
-      .regex(/^\d{2}-?\d{2}-?\d{2}$/, "Please enter a valid UK sort code, e.g. 12-34-56."),
-    bankAccountNumber: z
-      .string()
-      .trim()
-      .regex(/^\d{6,8}$/, "Please enter a valid UK bank account number."),
+    // Bank details are optional at this stage - the customer can send them later,
+    // once the device has arrived and the final settlement figure is agreed.
+    bankAccountName: z.string().trim().max(120).optional().default(""),
+    bankSortCode: z.string().trim().optional().default(""),
+    bankAccountNumber: z.string().trim().optional().default(""),
     hasOwnPackaging: z.boolean(),
     postagePackStripePaymentIntentId: z.string().trim().min(1).optional(),
     termsAccepted: z.literal(true),
@@ -73,7 +70,22 @@ const confirmTradeSchema = z
       message: "Postage pack payment is required before confirming.",
       path: ["postagePackStripePaymentIntentId"],
     },
-  );
+  )
+  .superRefine((data, ctx) => {
+    // All-or-nothing: leave every bank field blank for now, or fill in a valid set.
+    const anyProvided = Boolean(data.bankAccountName || data.bankSortCode || data.bankAccountNumber);
+    if (!anyProvided) return;
+
+    if (data.bankAccountName.length < 2) {
+      ctx.addIssue({ code: "custom", path: ["bankAccountName"], message: "Please enter the account holder's name." });
+    }
+    if (!/^\d{2}-?\d{2}-?\d{2}$/.test(data.bankSortCode)) {
+      ctx.addIssue({ code: "custom", path: ["bankSortCode"], message: "Please enter a valid UK sort code, e.g. 12-34-56." });
+    }
+    if (!/^\d{6,8}$/.test(data.bankAccountNumber)) {
+      ctx.addIssue({ code: "custom", path: ["bankAccountNumber"], message: "Please enter a valid UK bank account number." });
+    }
+  });
 
 const supportRequestSchema = z.object({
   deviceCategory: z.enum(categoryValues),
@@ -513,9 +525,9 @@ export async function confirmTrade(input: unknown) {
       parsed.customerEmail,
       parsed.customerMobile,
       parsed.collectionAddress,
-      parsed.bankAccountName,
-      parsed.bankSortCode.replaceAll("-", ""),
-      parsed.bankAccountNumber,
+      encryptBankField(parsed.bankAccountName),
+      encryptBankField(parsed.bankSortCode.replaceAll("-", "")),
+      encryptBankField(parsed.bankAccountNumber),
       postageService,
       null,
       reimbursement,
