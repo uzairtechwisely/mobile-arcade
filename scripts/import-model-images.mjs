@@ -44,8 +44,12 @@ loadEnv();
 const MODELS_DIR = path.join(process.cwd(), "public", "brand", "models");
 const MAP_FILE = path.join(process.cwd(), "data", "catalog", "model-images.json");
 
-// Walk up from the bottom: trailing white -> caption text -> white gap -> phone.
-// Returns the row where the phone content resumes, i.e. where to crop.
+// Finds the row to crop at so the baked-in caption is removed. Two signals, and
+// the stricter (higher) crop line wins:
+//  1. the white gap between the phone and the caption (walk up from the bottom:
+//     trailing white -> caption -> gap -> phone content);
+//  2. the caption's own text strokes (neutral near-black pixels), for renders where
+//     the caption sits inside the phone's floor reflection and there is no clean gap.
 async function findContentBottom(buf) {
   const { data, info } = await sharp(buf).raw().ensureAlpha().toBuffer({ resolveWithObject: true });
   const { width: w, height: h } = info;
@@ -57,6 +61,18 @@ async function findContentBottom(buf) {
     }
     return n;
   };
+  const ink = (y) => {
+    let n = 0;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const max = Math.max(data[i], data[i + 1], data[i + 2]);
+      const min = Math.min(data[i], data[i + 1], data[i + 2]);
+      if (max < 120 && max - min < 24) n++;
+    }
+    return n;
+  };
+
+  let gapBottom = h;
   let state = "below";
   let lowRun = 0;
   for (let y = h - 1; y >= 0; y--) {
@@ -67,9 +83,33 @@ async function findContentBottom(buf) {
       if (n <= 15) {
         if (++lowRun >= 8) state = "gap";
       } else lowRun = 0;
-    } else if (n > 80) return y + 1;
+    } else if (n > 80) {
+      gapBottom = y + 1;
+      break;
+    }
   }
-  return h;
+
+  let inkBottom = h;
+  let inCaption = false;
+  let captionTop = -1;
+  let clear = 0;
+  for (let y = h - 1; y >= 0; y--) {
+    const n = ink(y);
+    if (!inCaption) {
+      if (n >= 2) {
+        inCaption = true;
+        captionTop = y;
+      }
+    } else if (n >= 2) {
+      captionTop = y;
+      clear = 0;
+    } else if (++clear >= 8) {
+      inkBottom = captionTop - 6;
+      break;
+    }
+  }
+
+  return Math.min(gapBottom, inkBottom);
 }
 
 async function processImage(file) {
