@@ -444,6 +444,20 @@ h3 {
   border: 0;
 }
 
+.device-glyph-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Figma sizes: icons are ~75px tall on mobile and ~116px on desktop (line stays 2px). */
+.device-glyph {
+  display: block;
+  height: 75px;
+  width: auto;
+  overflow: visible;
+}
+
 .device-category-label {
   width: 140px;
   font-weight: 500;
@@ -1684,6 +1698,10 @@ textarea:focus-visible {
     width: auto;
     font-size: 20px;
     line-height: 36px;
+  }
+
+  .device-glyph {
+    height: 116px;
   }
 
   .tradein-promo-section {

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Celebration } from "@/components/landing/Celebration";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
@@ -89,14 +89,11 @@ function getDeviceImageSrc(item: { category: DeviceCategory; imageUrl?: string |
 const deviceTypes: Array<{
   key: DeviceCategory;
   label: string;
-  iconSrc: string;
-  iconWidth: number;
-  iconHeight: number;
 }> = [
-  { key: "phone", label: "Phones", iconSrc: "/brand/icons/devices-repair/mobile-icon.png", iconWidth: 18, iconHeight: 24 },
-  { key: "laptop", label: "Laptop", iconSrc: "/brand/icons/devices-repair/laptop-icon.png", iconWidth: 26, iconHeight: 22 },
-  { key: "tablet", label: "Tablets/iPad", iconSrc: "/brand/icons/devices-repair/tab-icon.png", iconWidth: 24, iconHeight: 26 },
-  { key: "gaming_device", label: "Gaming", iconSrc: "/brand/icons/devices-repair/game-icon.png", iconWidth: 28, iconHeight: 22 },
+  { key: "phone", label: "Phones" },
+  { key: "laptop", label: "Laptop" },
+  { key: "tablet", label: "Tablets/iPad" },
+  { key: "gaming_device", label: "Gaming" },
 ];
 
 const conditionDescriptions: Record<DeviceCondition, string> = {
@@ -283,17 +280,8 @@ function DeviceCategorySelector({
               onClick={() => onSelect(item.key)}
               className={`device-category ${active ? "is-selected text-[#006AFC]" : "text-[#1D1D1F]"}`}
             >
-              <span className="flex h-12 items-center justify-center">
-                <span
-                  aria-hidden="true"
-                  className="device-icon"
-                  style={{
-                    width: item.iconWidth,
-                    height: item.iconHeight,
-                    WebkitMaskImage: `url(${item.iconSrc})`,
-                    maskImage: `url(${item.iconSrc})`,
-                  }}
-                />
+              <span className="device-glyph-wrap">
+                <DeviceGlyph kind={item.key} />
               </span>
               <span className="device-category-label">{item.label}</span>
             </button>
@@ -413,6 +401,82 @@ function FAQAccordion({
         </div>
       </div>
     </section>
+  );
+}
+
+// Large thin-line device icons from the Figma landing page. Drawn as vectors with a
+// fixed 2px line (non-scaling stroke) because the supplied PNG icons are the small
+// UI versions - scaled up to the Figma size their line would be ~5x too heavy.
+// Size comes from CSS (.device-glyph): 75px tall on mobile, 116px on desktop.
+const DEVICE_GLYPHS: Record<DeviceCategory, { w: number; h: number }> = {
+  phone: { w: 74, h: 116 },
+  laptop: { w: 160, h: 116 },
+  tablet: { w: 106, h: 116 },
+  gaming_device: { w: 150, h: 116 },
+};
+
+function DeviceGlyph({ kind }: { kind: DeviceCategory }) {
+  const maskId = `glyph-mask-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const { w, h } = DEVICE_GLYPHS[kind];
+  const shape = { vectorEffect: "non-scaling-stroke" } as const;
+
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      className="device-glyph"
+      viewBox={`0 0 ${w} ${h}`}
+      style={{ aspectRatio: `${w} / ${h}` }}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {kind === "phone" ? (
+        <>
+          <defs>
+            <mask id={maskId} maskUnits="userSpaceOnUse" x="-5" y="-5" width="90" height="130">
+              <rect x="-5" y="-5" width="90" height="130" fill="#fff" stroke="none" />
+              <rect x="22" y="12" width="51" height="103" rx="17" fill="#000" stroke="none" />
+            </mask>
+          </defs>
+          <rect x="1" y="1" width="56" height="112" rx="17" mask={`url(#${maskId})`} {...shape} />
+          <path d="M24 8.5H34" mask={`url(#${maskId})`} {...shape} />
+          <rect x="22" y="12" width="51" height="103" rx="17" {...shape} />
+          <path d="M41 19H54" {...shape} />
+        </>
+      ) : null}
+      {kind === "laptop" ? (
+        <>
+          <path d="M17 90V20a19 19 0 0 1 19-19H124a19 19 0 0 1 19 19V90" {...shape} />
+          <rect x="1" y="90" width="158" height="25" rx="12.5" {...shape} />
+        </>
+      ) : null}
+      {kind === "tablet" ? (
+        <>
+          <defs>
+            <mask id={maskId} maskUnits="userSpaceOnUse" x="-5" y="-5" width="120" height="130">
+              <rect x="-5" y="-5" width="120" height="130" fill="#fff" stroke="none" />
+              <rect x="22" y="11" width="83" height="104" rx="12" fill="#000" stroke="none" />
+            </mask>
+          </defs>
+          <rect x="1" y="1" width="83" height="104" rx="12" mask={`url(#${maskId})`} {...shape} />
+          <rect x="22" y="11" width="83" height="104" rx="12" {...shape} />
+        </>
+      ) : null}
+      {kind === "gaming_device" ? (
+        <g transform="translate(0,-10)">
+          <path
+            d="M44 20H106C126 20 134 28 138 48L146 94C148 112 136 116 124 116C114 116 110 108 104 100L98 96H52L46 100C40 108 36 116 26 116C14 116 2 112 4 94L12 48C16 28 24 20 44 20Z"
+            {...shape}
+          />
+          <path d="M32 54H50M41 45V63" {...shape} />
+          <circle cx="106" cy="46" r="3" fill="currentColor" stroke="none" />
+          <circle cx="116" cy="58" r="3" fill="currentColor" stroke="none" />
+        </g>
+      ) : null}
+    </svg>
   );
 }
 
