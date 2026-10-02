@@ -1,8 +1,14 @@
+import modelImages from "../../../data/catalog/model-images.json";
+
 /**
  * Default product photos and "featured" picks applied when a model is first
  * created from a price list. Price uploads never overwrite an image or featured
  * flag that has since been set (e.g. from the admin panel), so this file only
  * seeds sensible defaults. Models with no photo fall back to the category icon.
+ *
+ * New photos are added with scripts/import-model-images.mjs, which records them
+ * in data/catalog/model-images.json (label -> url). The rules below predate that
+ * file and cover the earlier iPhone and Pixel batches.
  */
 
 const IMAGE_RULES: Array<{ test: RegExp; image: string }> = [
@@ -49,9 +55,15 @@ const IMAGE_RULES: Array<{ test: RegExp; image: string }> = [
   { test: /^google pixel 10a$/i, image: "/brand/models/pixel-10a.webp" },
 ];
 
+const IMAGE_BY_LABEL: Record<string, string> = modelImages;
+
 export function defaultImageFor(brand: string, model: string) {
   const label = `${brand} ${model}`;
-  return IMAGE_RULES.find((rule) => rule.test.test(label))?.image ?? null;
+  return (
+    IMAGE_BY_LABEL[label.toLowerCase()] ??
+    IMAGE_RULES.find((rule) => rule.test.test(label))?.image ??
+    null
+  );
 }
 
 export const DEFAULT_FEATURED_MODEL_IDS = new Set([
